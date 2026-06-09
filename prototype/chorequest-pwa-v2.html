@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>chorequest-pwa-v2</title>
+  <link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700,900&display=swap" rel="stylesheet">
+  <style>
+    :root, [data-theme="light"] {
+      --bg:#f7f5f1; --surface:#fcfbf8; --surface-2:#f0ece6; --offset:#eae5de; --border:#d7d0c7;
+      --text:#221f1a; --muted:#6f6a63; --faint:#9b948b; --inverse:#fbfaf8;
+      --primary:#0d6f74; --primary-soft:#d6e6e5; --success:#4a7a2a; --warning:#b4771d; --error:#a63b67;
+      --shadow:0 12px 36px rgba(34,31,26,.08); --radius:24px; --radius-sm:16px; --radius-full:999px;
+      --space-1:.25rem; --space-2:.5rem; --space-3:.75rem; --space-4:1rem; --space-5:1.25rem; --space-6:1.5rem; --space-8:2rem;
+      --text-xs:clamp(.75rem,.72rem + .2vw,.875rem); --text-sm:clamp(.875rem,.85rem + .2vw,1rem); --text-base:clamp(1rem,.96rem + .2vw,1.1rem); --text-lg:clamp(1.125rem,1rem + .7vw,1.45rem); --text-xl:clamp(1.55rem,1.2rem + 1vw,2rem);
+    }
+    [data-theme="dark"] {
+      --bg:#181715; --surface:#1e1c1a; --surface-2:#272421; --offset:#2e2a27; --border:#3a3631;
+      --text:#d6d1ca; --muted:#a39d96; --faint:#746f69; --inverse:#151412;
+      --primary:#62a9b0; --primary-soft:#2d3a3b; --success:#78af4b; --warning:#dd9b41; --error:#d06c98;
+      --shadow:0 14px 40px rgba(0,0,0,.35);
+    }
+    *{box-sizing:border-box} html,body{margin:0;background:radial-gradient(circle at top, rgba(13,111,116,.10), transparent 26%),var(--bg);color:var(--text);font-family:'Satoshi',sans-serif} body{padding:.5rem}
+    button,input,select{font:inherit} button{cursor:pointer;border:none}
+    .shell{max-width:440px;margin:0 auto;min-height:calc(100dvh - 1rem);background:color-mix(in srgb,var(--surface) 92%, transparent);border:1px solid color-mix(in srgb,var(--text) 10%, transparent);border-radius:34px;overflow:hidden;box-shadow:var(--shadow);backdrop-filter:blur(14px)}
+    .topbar,.bottom-nav{display:flex;align-items:center;justify-content:space-between;padding:1rem;border-color:color-mix(in srgb,var(--text) 8%, transparent)}
+    .topbar{border-bottom:1px solid color-mix(in srgb,var(--text) 8%, transparent);position:sticky;top:0;background:color-mix(in srgb,var(--surface) 94%, transparent);z-index:10}
+    .brand{display:flex;gap:.8rem;align-items:center}.logo{width:40px;height:40px;border-radius:14px;background:var(--primary);display:grid;place-items:center;color:var(--inverse)}
+    .logo svg{width:22px;height:22px}.title{margin:0;font-size:var(--text-sm);font-weight:800}.sub{margin:.1rem 0 0;color:var(--muted);font-size:var(--text-xs)}
+    .icon-btn{width:44px;height:44px;border-radius:14px;background:var(--surface-2);color:var(--text)}
+    .screen{display:none;padding:1rem 1rem 6.2rem}.screen.active{display:block}
+    .card{background:var(--surface);border:1px solid color-mix(in srgb,var(--text) 10%, transparent);border-radius:var(--radius);padding:1rem;box-shadow:0 1px 2px rgba(0,0,0,.03)}
+    .card + .card{margin-top:.9rem}.hero{background:linear-gradient(180deg,color-mix(in srgb,var(--primary) 11%, var(--surface)),var(--surface))}
+    .eyebrow{font-size:var(--text-xs);text-transform:uppercase;letter-spacing:.12em;color:var(--muted);margin-bottom:.6rem}.h1{margin:0 0 .4rem;font-size:var(--text-xl);line-height:1.04}.muted{color:var(--muted)}
+    .split{display:flex;justify-content:space-between;gap:.8rem;align-items:flex-start}.progress-number{font-size:2rem;font-weight:900;line-height:1;font-variant-numeric:tabular-nums}.bar{height:14px;background:var(--offset);border-radius:999px;overflow:hidden;margin-top:.8rem}.bar span{display:block;height:100%;background:linear-gradient(90deg,var(--primary),color-mix(in srgb,var(--primary) 60%, white));width:71%;border-radius:inherit}
+    .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:.7rem;margin-top:1rem}.stat{background:color-mix(in srgb,var(--surface-2) 70%, var(--surface));border-radius:18px;padding:.85rem}.stat strong{display:block;font-size:var(--text-lg)}.stat span{font-size:var(--text-xs);color:var(--muted)}
+    .section-head{display:flex;justify-content:space-between;align-items:center;margin:1.25rem 0 .75rem}.section-head h2{margin:0;font-size:var(--text-lg)} .ghost{background:none;color:var(--primary);font-weight:700}
+    .task{display:grid;gap:.8rem}.task-head{display:flex;justify-content:space-between;gap:.75rem}.task h3,.member h3,.mini h3{margin:0 0 .25rem;font-size:var(--text-base)}.meta{margin:0;color:var(--muted);font-size:var(--text-xs)}
+    .badge-row,.chip-row{display:flex;gap:.5rem;flex-wrap:wrap}.badge,.chip{display:inline-flex;align-items:center;padding:.45rem .7rem;border-radius:999px;font-size:var(--text-xs);font-weight:700}.badge.nfc{background:var(--primary-soft);color:var(--primary)}.badge.pet{background:color-mix(in srgb,var(--success) 16%, var(--surface));color:var(--success)}.badge.alert{background:color-mix(in srgb,var(--error) 14%, var(--surface));color:var(--error)}
+    .chip{background:var(--surface-2);color:var(--muted);font-weight:600}.actions{display:flex;gap:.65rem}.btn{min-height:44px;padding:.8rem 1rem;border-radius:18px;font-weight:800;font-size:var(--text-sm)}.btn.primary{background:var(--primary);color:var(--inverse);flex:1}.btn.secondary{background:var(--surface-2);color:var(--text);border:1px solid color-mix(in srgb,var(--text) 8%, transparent)}
+    .ring{width:76px;height:76px;border-radius:50%;display:grid;place-items:center;background:conic-gradient(var(--primary) 0 255deg,var(--offset) 255deg 360deg);font-weight:900}
+    .member{display:flex;justify-content:space-between;gap:.75rem;align-items:flex-start}.score{font-weight:900;font-variant-numeric:tabular-nums}.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:.8rem}.month-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:.6rem;margin-top:.9rem}.month{padding:.7rem .4rem;border-radius:16px;background:var(--surface-2);text-align:center;font-size:var(--text-xs)}.month strong{display:block;font-size:var(--text-sm)}.month.done{background:color-mix(in srgb,var(--success) 14%, var(--surface));color:var(--success)}.month.current{outline:2px solid var(--primary)}
+    .tabs{display:flex;gap:.45rem;background:var(--surface-2);padding:.35rem;border-radius:18px}.tab{flex:1;min-height:40px;border-radius:14px;background:transparent;color:var(--muted);font-weight:700}.tab.active{background:var(--surface);color:var(--text)}
+    .bottom-nav{position:sticky;bottom:0;gap:.5rem;border-top:1px solid color-mix(in srgb,var(--text) 8%, transparent);background:color-mix(in srgb,var(--surface) 95%, transparent);backdrop-filter:blur(12px)}
+    .nav-btn{flex:1;min-height:58px;border-radius:18px;background:transparent;color:var(--muted);display:grid;place-items:center;font-size:11px;gap:.2rem}.nav-btn.active{background:var(--surface-2);color:var(--primary);font-weight:800}
+    .nav-btn svg{width:20px;height:20px}.list{display:grid;gap:.85rem}.small{font-size:var(--text-xs)}
+    .toast{position:fixed;left:50%;bottom:1rem;transform:translateX(-50%) translateY(140%);background:var(--text);color:var(--inverse);padding:.9rem 1rem;border-radius:16px;box-shadow:var(--shadow);transition:transform .2s ease;z-index:30}.toast.show{transform:translateX(-50%) translateY(0)}
+    @media (max-width:420px){.stats{grid-template-columns:1fr}.month-grid{grid-template-columns:repeat(3,1fr)}}
+  </style>
+</head>
+<body>
+<div class="shell">
+  <header class="topbar">
+    <div class="brand">
+      <div class="logo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 8h12M8 12h8M10 16h4" stroke-linecap="round"/><path d="M4 5.5C4 4.12 5.12 3 6.5 3h11C18.88 3 20 4.12 20 5.5v13c0 1.38-1.12 2.5-2.5 2.5h-11A2.5 2.5 0 0 1 4 18.5v-13Z"/></svg></div>
+      <div><p class="title">ChoreQuest</p><p class="sub">PWA mobile · Windows-friendly</p></div>
+    </div>
+    <button class="icon-btn" id="themeToggle" aria-label="Changer le thème">☾</button>
+  </header>
+
+  <main>
+    <section class="screen active" id="home">
+      <div class="card hero">
+        <div class="eyebrow">Objectif mensuel · mai 2026</div>
+        <div class="split">
+          <div>
+            <h1 class="h1">Monter à 1 500 points en équipe.</h1>
+            <p class="muted">Le score global du foyer avance avec les tâches quotidiennes, hebdo, bihebdo et mensuelles.</p>
+          </div>
+          <div class="ring">71%</div>
+        </div>
+        <div class="progress-number">1 070 / 1 500</div>
+        <div class="bar"><span id="progressFill"></span></div>
+        <div class="stats">
+          <div class="stat"><strong>13 j</strong><span>streak d’équipe</span></div>
+          <div class="stat"><strong>9</strong><span>tâches du jour</span></div>
+          <div class="stat"><strong>2</strong><span>retards à corriger</span></div>
+        </div>
+      </div>
+
+      <div class="section-head"><h2>Aujourd’hui</h2><button class="ghost" id="simulateDay">Simuler +1 jour</button></div>
+      <div class="list">
+        <article class="card task">
+          <div class="task-head"><div><h3>Croquettes de Pep’s</h3><p class="meta">Quotidien · 10 pts · tâche critique</p></div><span class="badge pet">Animal</span></div>
+          <div class="badge-row"><span class="badge nfc">Validation NFC</span><span class="chip">Bonus streak +2</span></div>
+          <div class="actions"><button class="btn primary" data-points="10">Scanner NFC</button><button class="btn secondary">Déléguer</button></div>
+        </article>
+        <article class="card task">
+          <div class="task-head"><div><h3>Eau de Pep’s</h3><p class="meta">Quotidien · 10 pts · avant 20 h</p></div><span class="badge pet">Priorité</span></div>
+          <div class="badge-row"><span class="badge nfc">Badge coin repas</span><span class="chip">Fait hier par Jade</span></div>
+          <div class="actions"><button class="btn primary" data-points="10">Scanner NFC</button><button class="btn secondary">Assigner</button></div>
+        </article>
+        <article class="card task">
+          <div class="task-head"><div><h3>Nettoyer la litière</h3><p class="meta">Quotidien · 12 pts · malus si retard</p></div><span class="badge alert">-4 en retard</span></div>
+          <div class="badge-row"><span class="badge nfc">Badge litière</span><span class="chip">Streak individuel</span></div>
+          <div class="actions"><button class="btn primary" data-points="12">Scanner NFC</button><button class="btn secondary">Reporter</button></div>
+        </article>
+        <article class="card task">
+          <div class="task-head"><div><h3>Vider les poubelles</h3><p class="meta">Hebdo · 20 pts · mercredi</p></div><span class="badge nfc">NFC</span></div>
+          <div class="badge-row"><span class="chip">0 / 1 cette semaine</span><span class="chip">Malus demain</span></div>
+          <div class="actions"><button class="btn primary" data-points="20">Scanner NFC</button><button class="btn secondary">Reporter</button></div>
+        </article>
+      </div>
+    </section>
+
+    <section class="screen" id="team">
+      <div class="card split">
+        <div><div class="eyebrow">Classement foyer</div><h2 class="h1" style="font-size:var(--text-xl)">Maison Pep’s</h2><p class="muted">Coop + classement individuel visibles en permanence.</p></div>
+        <div class="ring">71%</div>
+      </div>
+      <div class="section-head"><h2>Joueurs</h2><button class="ghost">Inviter</button></div>
+      <div class="list">
+        <article class="card member"><div><h3>Toi</h3><p class="meta">450 pts · streak 10 jours · 15 scans NFC</p></div><div class="score">#1</div></article>
+        <article class="card member"><div><h3>Jade</h3><p class="meta">350 pts · streak 7 jours · 12 validations</p></div><div class="score">#2</div></article>
+        <article class="card member"><div><h3>Noah</h3><p class="meta">270 pts · 2 retards · 8 validations</p></div><div class="score">#3</div></article>
+      </div>
+      <div class="section-head"><h2>Règles</h2></div>
+      <div class="card"><div class="chip-row"><span class="chip">Objectif : 1 500 pts</span><span class="chip">Bonus avant le 28</span><span class="chip">-10% si retard</span><span class="chip">Badge équipe à 3 mois</span></div></div>
+    </section>
+
+    <section class="screen" id="calendar">
+      <div class="card">
+        <div class="eyebrow">Calendrier annuel</div><h2 class="h1" style="font-size:var(--text-xl)">Vue 2026</h2><p class="muted">Le mois est l’unité centrale. Les grosses tâches nourrissent la progression ou se valident dans l’app.</p>
+        <div class="month-grid">
+          <div class="month done"><strong>Jan</strong>1460</div><div class="month done"><strong>Fév</strong>1510</div><div class="month done"><strong>Mar</strong>1620</div><div class="month"><strong>Avr</strong>1280</div>
+          <div class="month current"><strong>Mai</strong>1070</div><div class="month"><strong>Juin</strong>Prévu</div><div class="month"><strong>Juil</strong>Prévu</div><div class="month"><strong>Août</strong>Prévu</div>
+          <div class="month"><strong>Sep</strong>Saison</div><div class="month"><strong>Oct</strong>Prévu</div><div class="month"><strong>Nov</strong>Prévu</div><div class="month"><strong>Déc</strong>Annuel</div>
+        </div>
+      </div>
+      <div class="section-head"><h2>À venir</h2></div>
+      <div class="list">
+        <article class="card mini"><h3>Changer / vider la litière</h3><p class="meta">Toutes les 2 semaines · 35 pts · NFC</p></article>
+        <article class="card mini"><h3>Nettoyer les vitres</h3><p class="meta">Mensuel · 60 pts · NFC fenêtre séjour</p></article>
+        <article class="card mini"><h3>Retourner le matelas</h3><p class="meta">Saisonnier · validation app</p></article>
+        <article class="card mini"><h3>Entretien clim / chauffage</h3><p class="meta">Annuel · validation app</p></article>
+      </div>
+    </section>
+
+    <section class="screen" id="archi">
+      <div class="card">
+        <div class="eyebrow">Plan Windows</div><h2 class="h1" style="font-size:var(--text-xl)">Stack recommandée</h2>
+        <div class="tabs"><button class="tab active">Front</button><button class="tab">Back</button><button class="tab">DB</button></div>
+      </div>
+      <div class="grid-2" style="margin-top:.85rem;">
+        <article class="card mini"><h3>Front</h3><p class="meta">PWA mobile-first en HTML/CSS/JS ou React. Installable sur téléphone, design iPhone-like.</p></article>
+        <article class="card mini"><h3>Back</h3><p class="meta">FastAPI ou Django REST pour auth, scores, sync équipe, historique.</p></article>
+        <article class="card mini"><h3>DB</h3><p class="meta">PostgreSQL en prod, SQLite en local. Tables joueurs, tâches, occurrences, badges, pénalités.</p></article>
+        <article class="card mini"><h3>NFC</h3><p class="meta">Simulation par bouton ou QR au début, vrai NFC iPhone plus tard sur Mac/Xcode.</p></article>
+      </div>
+      <div class="card">
+        <h3 style="margin:0 0 .5rem">Roadmap dev</h3>
+        <div class="chip-row">
+          <span class="chip">V1 local</span><span class="chip">V2 auth + équipe</span><span class="chip">V3 sync temps réel</span><span class="chip">V4 NFC natif iPhone</span>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <nav class="bottom-nav">
+    <button class="nav-btn active" data-screen="home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.8V21h14V9.8"/></svg><span>Accueil</span></button>
+    <button class="nav-btn" data-screen="team"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><span>Équipe</span></button>
+    <button class="nav-btn" data-screen="calendar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg><span>Calendrier</span></button>
+    <button class="nav-btn" data-screen="archi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 15.5A3.5 3.5 0 1 0 12 8.5a3.5 3.5 0 0 0 0 7Z"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06A1.7 1.7 0 0 0 15 19.4a1.7 1.7 0 0 0-1 .6 1.7 1.7 0 0 0-.4 1.06V21a2 2 0 1 1-4 0v-.09a1.7 1.7 0 0 0-.4-1.06 1.7 1.7 0 0 0-1-.6 1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-.6-1 1.7 1.7 0 0 0-1.06-.4H2.9a2 2 0 1 1 0-4h.09a1.7 1.7 0 0 0 1.06-.4 1.7 1.7 0 0 0 .6-1 1.7 1.7 0 0 0-.34-1.87l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.7 1.7 0 0 0 9 4.6c.38-.1.72-.32 1-.6.26-.28.4-.66.4-1.06V2.9a2 2 0 1 1 4 0v.09c0 .4.14.78.4 1.06.28.28.62.5 1 .6a1.7 1.7 0 0 0 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.7 1.7 0 0 0 19.4 9c.1.38.32.72.6 1 .28.26.66.4 1.06.4h.09a2 2 0 1 1 0 4h-.09c-.4 0-.78.14-1.06.4-.28.28-.5.62-.6 1Z"/></svg><span>Plan</span></button>
+  </nav>
+</div>
+<div class="toast" id="toast">Action enregistrée</div>
+<script>
+  const nav = document.querySelectorAll('.nav-btn');
+  const screens = document.querySelectorAll('.screen');
+  const toast = document.getElementById('toast');
+  const root = document.documentElement;
+  const fill = document.getElementById('progressFill');
+  let progress = 1070;
+  const target = 1500;
+  function showToast(msg){toast.textContent=msg;toast.classList.add('show');clearTimeout(window._t);window._t=setTimeout(()=>toast.classList.remove('show'),2200)}
+  nav.forEach(btn=>btn.addEventListener('click',()=>{nav.forEach(n=>n.classList.remove('active'));screens.forEach(s=>s.classList.remove('active'));btn.classList.add('active');document.getElementById(btn.dataset.screen).classList.add('active')}));
+  document.querySelectorAll('.btn.primary[data-points]').forEach(btn=>btn.addEventListener('click',()=>{progress += Number(btn.dataset.points); const pct=Math.min((progress/target)*100,100); fill.style.width=pct+'%'; document.querySelector('.progress-number').textContent = `${progress.toLocaleString('fr-FR')} / ${target.toLocaleString('fr-FR')}`; showToast(`Tâche validée · +${btn.dataset.points} points`) }));
+  document.getElementById('simulateDay').addEventListener('click',()=>showToast('Jour simulé · recalcul des tâches et pénalités à venir'));
+  document.getElementById('themeToggle').addEventListener('click',()=>{const next=root.getAttribute('data-theme')==='light'?'dark':'light';root.setAttribute('data-theme',next);showToast(next==='dark'?'Mode sombre activé':'Mode clair activé')});
+</script>
+</body>
+</html>
