@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import type { Task } from '../types'
 import { useTasks } from '../context/useTasks'
 import { getDueSoonTasks, getOverdueTasks } from '../utils/streaks'
@@ -31,7 +31,7 @@ function getFeaturedTasks(tasks: Task[]) {
         .slice(0, 8)
 }
 
-function getTodayPoints(taskList: Task[], completionHistoryLength: number) {
+function getTodayPoints(taskList: Task[]) {
     const today = new Date()
     const todayStart = new Date(
         today.getFullYear(),
@@ -44,7 +44,7 @@ function getTodayPoints(taskList: Task[], completionHistoryLength: number) {
             if (!task.lastCompletedAt) return false
             return new Date(task.lastCompletedAt).getTime() >= todayStart
         })
-        .reduce((total, task) => total + task.points, 0) + completionHistoryLength * 0
+        .reduce((total, task) => total + task.points, 0)
 }
 
 function getBestLiveStreak(taskList: Task[]) {
@@ -90,6 +90,7 @@ export function HomeScreen() {
         completionHistory,
         completeTaskById,
         getNfcBindingByTaskId,
+        unlinkNfcTagFromTask,
     } = useTasks()
 
     const [selectedTask, setSelectedTask] = useState<Task | null>(null)
@@ -102,22 +103,12 @@ export function HomeScreen() {
     const overdueTasks = useMemo(() => getOverdueTasks(taskList), [taskList])
     const dueSoonTasks = useMemo(() => getDueSoonTasks(taskList), [taskList])
     const hotStreakTasks = useMemo(() => getHotStreakTasks(taskList), [taskList])
-
-    const todayPoints = useMemo(
-        () => getTodayPoints(taskList, completionHistory.length),
-        [taskList, completionHistory.length]
-    )
-
-    const bestLiveStreak = useMemo(
-        () => getBestLiveStreak(taskList),
-        [taskList]
-    )
-
+    const todayPoints = useMemo(() => getTodayPoints(taskList), [taskList])
+    const bestLiveStreak = useMemo(() => getBestLiveStreak(taskList), [taskList])
     const unlockedBadgesCount = useMemo(
         () => getUnlockedBadgesCount(taskList),
         [taskList]
     )
-
     const nextBadge = useMemo(() => getNextBadge(taskList), [taskList])
 
     const selectedTaskBinding = useMemo(() => {
@@ -127,16 +118,23 @@ export function HomeScreen() {
 
     const selectedTaskHistory = useMemo(() => {
         if (!selectedTask) return []
-        return completionHistory.filter(
-            (event) => event.taskId === selectedTask.id
-        ).slice(0, 5)
+        return completionHistory
+            .filter((event) => event.taskId === selectedTask.id)
+            .slice(0, 5)
     }, [selectedTask, completionHistory])
+
+    useEffect(() => {
+        if (!toast) return
+
+        const timeoutId = window.setTimeout(() => {
+            setToast(null)
+        }, 2500)
+
+        return () => window.clearTimeout(timeoutId)
+    }, [toast])
 
     const showToast = (message: string, type: ToastType = 'info') => {
         setToast({ message, type })
-        window.setTimeout(() => {
-            setToast(null)
-        }, 2500)
     }
 
     const openTask = (task: Task) => {
@@ -224,7 +222,9 @@ export function HomeScreen() {
 
                 <div className="task-list">
                     {featuredTasks.length === 0 && (
-                        <p className="empty-label">Aucune tâche prioritaire pour le moment.</p>
+                        <p className="empty-label">
+                            Aucune tâche prioritaire pour le moment.
+                        </p>
                     )}
 
                     {featuredTasks.map((task) => {
@@ -237,10 +237,14 @@ export function HomeScreen() {
                                         <h3>{task.title}</h3>
                                         <div className="task-badges">
                                             {task.critical && (
-                                                <span className="badge badge-danger">Critique</span>
+                                                <span className="badge badge-danger">
+                                                    Critique
+                                                </span>
                                             )}
                                             {task.needsNfc && (
-                                                <span className="badge badge-info">NFC</span>
+                                                <span className="badge badge-info">
+                                                    NFC
+                                                </span>
                                             )}
                                         </div>
                                     </div>
@@ -292,11 +296,15 @@ export function HomeScreen() {
 
                 <div className="task-list">
                     {overdueTasks.map((task) => (
-                        <article key={`overdue-${task.id}`} className="task-card task-card-alert">
+                        <article
+                            key={`overdue-${task.id}`}
+                            className="task-card task-card-alert"
+                        >
                             <div className="task-card-main">
                                 <h3>{task.title}</h3>
                                 <p className="task-meta">En retard · {task.points} pts</p>
                             </div>
+
                             <div className="task-card-actions">
                                 <button
                                     type="button"
@@ -315,6 +323,7 @@ export function HomeScreen() {
                                 <h3>{task.title}</h3>
                                 <p className="task-meta">Bientôt due · {task.points} pts</p>
                             </div>
+
                             <div className="task-card-actions">
                                 <button
                                     type="button"
@@ -391,8 +400,9 @@ export function HomeScreen() {
                 }}
                 onStartNfcScan={handleStartTaskNfcValidation}
                 onLinkNfc={handleLinkNfc}
-                onUnlinkNfc={() => {
-                    showToast('Suppression NFC à brancher.', 'info')
+                onUnlinkNfc={(task) => {
+                    unlinkNfcTagFromTask(task.id)
+                    showToast(`Badge NFC retiré de "${task.title}".`, 'success')
                 }}
             />
 
@@ -405,7 +415,11 @@ export function HomeScreen() {
             />
 
             {toast && (
-                <div className={`toast toast-${toast.type}`} role="status" aria-live="polite">
+                <div
+                    className={`toast toast-${toast.type}`}
+                    role="status"
+                    aria-live="polite"
+                >
                     {toast.message}
                 </div>
             )}

@@ -44,7 +44,7 @@ function getErrorMessage(error: unknown) {
 function parseNdefRecord(record: NDEFRecord): ParsedNfcRecord {
     const decoder = new TextDecoder()
     const base: ParsedNfcRecord = {
-        recordType: record.recordType,
+        recordType: record.recordType ?? 'unknown',
         mediaType: record.mediaType,
         id: record.id,
         encoding: record.encoding,

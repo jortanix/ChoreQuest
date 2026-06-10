@@ -1,4 +1,4 @@
-import HomeScreen from '../screens/HomeScreen'
+import { HomeScreen } from '../screens/HomeScreen'
 import TeamScreen from '../screens/TeamScreen'
 import CalendarScreen from '../screens/CalendarScreen'
 import SettingsScreen from '../screens/SettingsScreen'
@@ -18,7 +18,7 @@ export default function ScreenRenderer({
                                            onChangeScreen,
                                        }: ScreenRendererProps) {
     if (activeScreen === 'home') {
-        return <HomeScreen onShowToast={onShowToast} />
+        return <HomeScreen />
     }
 
     if (activeScreen === 'team') {

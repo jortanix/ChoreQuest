@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import type { Task } from '../../types'
 import type { NfcFlowMode } from '../../types/nfc'
 import { useNfcScanner } from '../../hooks/useNfcScanner'
@@ -26,12 +26,9 @@ export function NfcScanFlow({
         getTaskByNfcTagId,
     } = useTasks()
 
-    const {
-        scanState,
-        startScan,
-        cancelScan,
-        resetScan,
-    } = useNfcScanner()
+    const { scanState, startScan, cancelScan, resetScan } = useNfcScanner()
+
+    const handledScanKeyRef = useRef<string | null>(null)
 
     const existingBinding = useMemo(() => {
         if (!task) return null
@@ -45,7 +42,18 @@ export function NfcScanFlow({
     }, [isOpen, resetScan])
 
     useEffect(() => {
+        if (scanState.status !== 'success') {
+            handledScanKeyRef.current = null
+        }
+    }, [scanState.status])
+
+    useEffect(() => {
         if (scanState.status !== 'success') return
+
+        const scanKey = `${mode}-${task?.id ?? 'none'}-${scanState.tagId}-${scanState.scannedAt}`
+
+        if (handledScanKeyRef.current === scanKey) return
+        handledScanKeyRef.current = scanKey
 
         if (mode === 'link-task') {
             if (!task) return
@@ -145,6 +153,7 @@ export function NfcScanFlow({
 
                     <button
                         type="button"
+                        className="icon-button"
                         onClick={onClose}
                         aria-label="Fermer"
                     >
@@ -255,7 +264,9 @@ export function NfcScanFlow({
                                 <div>
                                     <span className="label">Lu à</span>
                                     <strong>
-                                        {new Date(scanState.scannedAt).toLocaleString()}
+                                        {new Date(
+                                            scanState.scannedAt
+                                        ).toLocaleString()}
                                     </strong>
                                 </div>
                             </div>
