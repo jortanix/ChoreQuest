@@ -3,11 +3,15 @@ from .models import Task, CompletionEvent, NfcBinding
 
 
 class NfcBindingSerializer(serializers.ModelSerializer):
+    task = serializers.PrimaryKeyRelatedField(
+        queryset=Task.objects.all(),
+        write_only=True,
+    )
     task_id = serializers.IntegerField(source="task.id", read_only=True)
 
     class Meta:
         model = NfcBinding
-        fields = ["id", "task_id", "tag_id", "tag_label", "linked_at"]
+        fields = ["id", "task", "task_id", "tag_id", "tag_label", "linked_at"]
 
 
 class CompletionEventSerializer(serializers.ModelSerializer):

@@ -19,12 +19,30 @@ class TaskViewSet(viewsets.ModelViewSet):
     def complete(self, request, pk=None):
         task = self.get_object()
 
+        if task.completed_today:
+            latest_event = task.completion_events.order_by("-completed_at").first()
+
+            return Response(
+                {
+                    "task": TaskSerializer(task).data,
+                    "event": (
+                        CompletionEventSerializer(latest_event).data
+                        if latest_event
+                        else None
+                    ),
+                    "already_completed": True,
+                },
+                status=status.HTTP_200_OK,
+            )
+
+        now = timezone.now()
+
         task.completed = True
         task.completed_today = True
         task.completed_this_period = True
         task.current_streak += 1
         task.best_streak = max(task.best_streak, task.current_streak)
-        task.last_completed_at = timezone.now()
+        task.last_completed_at = now
         task.save()
 
         event = CompletionEvent.objects.create(
@@ -32,7 +50,7 @@ class TaskViewSet(viewsets.ModelViewSet):
             task_title=task.title,
             assignee=task.assignee,
             points=task.points,
-            completed_at=timezone.now(),
+            completed_at=now,
             frequency=task.frequency,
             needs_nfc=task.needs_nfc,
         )
@@ -41,6 +59,7 @@ class TaskViewSet(viewsets.ModelViewSet):
             {
                 "task": TaskSerializer(task).data,
                 "event": CompletionEventSerializer(event).data,
+                "already_completed": False,
             },
             status=status.HTTP_200_OK,
         )

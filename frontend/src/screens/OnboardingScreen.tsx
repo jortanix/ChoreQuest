@@ -72,14 +72,24 @@ function OnboardingScreen({ onFinish }: OnboardingScreenProps) {
 
                 <div className="onboarding-actions">
                     {step > 0 ? (
-                        <button className="btn secondary" onClick={prevStep}>
+                        <button
+                            type="button"
+                            className="btn btn-secondary"
+                            onClick={prevStep}
+                        >
                             Retour
                         </button>
                     ) : (
-                        <button className="btn secondary">Plus tard</button>
+                        <button type="button" className="btn btn-secondary">
+                            Plus tard
+                        </button>
                     )}
 
-                    <button className="btn primary" onClick={nextStep}>
+                    <button
+                        type="button"
+                        className="btn btn-primary"
+                        onClick={nextStep}
+                    >
                         {step === 2 ? 'Commencer' : 'Continuer'}
                     </button>
                 </div>

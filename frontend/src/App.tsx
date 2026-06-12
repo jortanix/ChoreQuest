@@ -11,7 +11,7 @@ import type { Screen, ThemeMode } from './types/app'
 function App() {
     const [activeScreen, setActiveScreen] = useState<Screen>('home')
     const [theme, setTheme] = useState<ThemeMode>('light')
-    const [hasOnboarded, setHasOnboarded] = useState(false)
+    const [hasOnboarded, setHasOnboarded] = useState(true)
 
     const { activeToast, showToast } = useToastQueue()
 

@@ -82,52 +82,106 @@ export function HomeScreen() {
 
     if (isLoading) {
         return (
-            <section>
-                <h1>Accueil</h1>
-                <p>Chargement des tâches…</p>
+            <section className="screen home-screen">
+                <div className="section-head">
+                    <h1>Accueil</h1>
+                </div>
+                <div className="card">
+                    <p>Chargement des tâches…</p>
+                </div>
             </section>
         )
     }
 
     if (error) {
         return (
-            <section>
-                <h1>Accueil</h1>
-                <p>Erreur : {error}</p>
+            <section className="screen home-screen">
+                <div className="section-head">
+                    <h1>Accueil</h1>
+                </div>
+                <div className="card">
+                    <p>Erreur : {error}</p>
+                </div>
             </section>
         )
     }
 
     return (
-        <section>
-            <h1>Accueil</h1>
-            <p>
-                {tasks.length} tâche{tasks.length > 1 ? 's' : ''} • {completedCount}{' '}
-                complétée{completedCount > 1 ? 's' : ''} • {totalPoints} points
-            </p>
+        <section className="screen home-screen">
+            <div className="section-head">
+                <h1>Accueil</h1>
+            </div>
+
+            <div className="home-metrics">
+                <div className="metric-card">
+                    <span className="metric-label">Tâches</span>
+                    <strong>{tasks.length}</strong>
+                </div>
+                <div className="metric-card">
+                    <span className="metric-label">Complétées</span>
+                    <strong>{completedCount}</strong>
+                </div>
+                <div className="metric-card">
+                    <span className="metric-label">Points</span>
+                    <strong>{totalPoints}</strong>
+                </div>
+            </div>
 
             {tasks.length === 0 ? (
-                <p>Aucune tâche disponible.</p>
+                <div className="card">
+                    <p>Aucune tâche disponible.</p>
+                </div>
             ) : (
-                <ul>
+                <div className="task-list">
                     {tasks.map((task) => (
-                        <li key={task.id}>
-                            <h2>{task.title}</h2>
-                            <p>{task.description || 'Sans description'}</p>
-                            <p>
-                                Fréquence : {task.frequency} • Points : {task.points}
-                            </p>
-                            <p>
-                                Assigné à : {task.assignee || 'Non assigné'} • Échéance :{' '}
-                                {task.dueLabel || '—'}
-                            </p>
-                            <p>
-                                NFC : {task.needsNfc ? 'Oui' : 'Non'} • Statut :{' '}
-                                {task.completed ? 'Terminée' : 'À faire'}
-                            </p>
-                        </li>
+                        <article key={task.id} className="task-card">
+                            <div className="task-top">
+                                <div>
+                                    <h2 className="task-title">{task.title}</h2>
+                                    <p className="task-meta">
+                                        {task.description || 'Sans description'}
+                                    </p>
+                                </div>
+
+                                <span
+                                    className={`badge ${
+                                        task.completed ? 'pet' : 'alert'
+                                    }`}
+                                >
+                                    {task.completed ? 'Terminée' : 'À faire'}
+                                </span>
+                            </div>
+
+                            <div className="row-badges">
+                                <span className="pill">
+                                    {task.frequency || 'Fréquence non définie'}
+                                </span>
+                                <span className="pill">{task.points ?? 0} points</span>
+                                <span className="badge nfc">
+                                    NFC : {task.needsNfc ? 'Oui' : 'Non'}
+                                </span>
+                            </div>
+
+                            <div className="task-actions">
+                                <button className="btn btn-primary" type="button">
+                                    Ouvrir
+                                </button>
+                                <button className="btn btn-secondary" type="button">
+                                    Assigner
+                                </button>
+                            </div>
+
+                            <div className="pill-row">
+                                <span className="pill">
+                                    Assigné à : {task.assignee || 'Non assigné'}
+                                </span>
+                                <span className="pill">
+                                    Échéance : {task.dueLabel || '—'}
+                                </span>
+                            </div>
+                        </article>
                     ))}
-                </ul>
+                </div>
             )}
         </section>
     )
