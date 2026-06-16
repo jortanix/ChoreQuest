@@ -329,7 +329,7 @@
     border-radius: 999px;
     background: rgba(255, 255, 255, 0.95);
     border: 3px solid var(--border);
-    overflow: hidden;
+    overflow: visible;
     z-index: 1;
 }
 
