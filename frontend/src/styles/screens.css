@@ -3,6 +3,7 @@
     z-index: 1;
     padding: 7rem 1rem calc(7.4rem + env(safe-area-inset-bottom, 0px));
     min-height: 100%;
+    color: var(--text);
 }
 
 .home-screen {
@@ -31,6 +32,7 @@
     margin: 0 0 0.45rem;
     font-size: var(--text-xl);
     line-height: 1.02;
+    color: var(--text);
 }
 
 .hero-sub,
@@ -45,18 +47,23 @@
     align-items: flex-start;
     justify-content: space-between;
     gap: 0.8rem;
-    margin-bottom: 1rem;
+    margin-bottom: 0.9rem;
+}
+
+.home-header > div {
+    display: grid;
+    gap: 0.2rem;
 }
 
 .home-metrics {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     gap: 0.75rem;
-    margin-bottom: 1rem;
+    margin-bottom: 0;
 }
 
 .metric-card {
-    padding: 0.85rem;
+    padding: 0.9rem 0.95rem;
     border-radius: 22px;
     text-align: left;
 }
@@ -65,6 +72,8 @@
 .metric-value {
     display: block;
     font-size: var(--text-lg);
+    color: var(--text);
+    line-height: 1.05;
 }
 
 .metric-label {
@@ -75,6 +84,332 @@
 
 .home-section {
     margin-bottom: 1.25rem;
+}
+
+.home-section:last-child {
+    margin-bottom: 0;
+}
+
+.section-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-bottom: 0.7rem;
+}
+
+.section-head h1,
+.section-head h2 {
+    font-size: var(--text-lg);
+    margin: 0;
+    color: var(--text);
+}
+
+.section-head p {
+    margin: 0;
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+    font-weight: 800;
+}
+
+.task-kicker {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.38rem 0.65rem;
+    margin-bottom: 0.5rem;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.84);
+    border: 2px solid var(--border-soft);
+    font-size: 12px;
+    font-weight: 900;
+    letter-spacing: 0.04em;
+    color: var(--purple);
+    text-transform: uppercase;
+}
+
+.task-card-featured {
+    position: relative;
+    overflow: hidden;
+    border-radius: 28px;
+    padding: 1.05rem;
+    background: linear-gradient(
+        180deg,
+        rgba(255, 255, 255, 0.97),
+        rgba(255, 243, 249, 0.88)
+    );
+    border: 3px solid var(--border);
+    box-shadow: var(--shadow-md);
+}
+
+.task-featured-glow {
+    position: absolute;
+    right: -2rem;
+    bottom: -2rem;
+    width: 9.5rem;
+    height: 9.5rem;
+    border-radius: 999px;
+    background: radial-gradient(
+        circle,
+        rgba(245, 138, 192, 0.26),
+        rgba(245, 138, 192, 0)
+    );
+    pointer-events: none;
+}
+
+.task-card-featured .task-top,
+.task-card-featured .row-badges,
+.task-card-featured .pill-row,
+.task-card-featured .task-actions {
+    position: relative;
+    z-index: 1;
+}
+
+.task-card-featured .task-title {
+    font-size: clamp(1.22rem, 1.05rem + 0.8vw, 1.5rem);
+    line-height: 1.04;
+}
+
+.task-card-featured .task-meta {
+    max-width: 34ch;
+}
+
+.task-card-compact {
+    border-radius: 24px;
+}
+
+.task-card-compact .task-title {
+    font-size: var(--text-base);
+}
+
+.task-card-compact .task-meta {
+    font-size: var(--text-xs);
+}
+
+.home-summary-card {
+    background: linear-gradient(
+        180deg,
+        rgba(255, 255, 255, 0.9),
+        rgba(255, 248, 252, 0.78)
+    );
+}
+
+.monthly-goal-card {
+    position: relative;
+    overflow: hidden;
+    display: grid;
+    gap: 1rem;
+    padding: 1rem;
+    border-radius: 30px;
+    background: linear-gradient(
+        180deg,
+        rgba(255, 255, 255, 0.96),
+        rgba(246, 242, 255, 0.92)
+    );
+    border: 3px solid var(--border);
+    box-shadow: var(--shadow-md);
+}
+
+.monthly-goal-card::after {
+    content: '';
+    position: absolute;
+    inset: auto -2rem -2rem auto;
+    width: 9rem;
+    height: 9rem;
+    border-radius: 999px;
+    background: radial-gradient(
+        circle,
+        rgba(245, 138, 192, 0.18),
+        rgba(245, 138, 192, 0)
+    );
+    pointer-events: none;
+}
+
+.monthly-goal-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    position: relative;
+    z-index: 1;
+}
+
+.monthly-goal-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.48rem 0.85rem;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.88);
+    border: 2px solid var(--border-soft);
+    color: var(--text-muted);
+    font-size: 12px;
+    font-weight: 900;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.monthly-goal-icon {
+    width: 4.4rem;
+    height: 4.4rem;
+    border-radius: 22px;
+    display: grid;
+    place-items: center;
+    background: linear-gradient(180deg, #dff2ff, #ffffff);
+    border: 3px solid var(--border);
+    box-shadow: var(--shadow-sm);
+    font-size: 1.5rem;
+    flex-shrink: 0;
+}
+
+.monthly-goal-copy {
+    display: grid;
+    gap: 0.6rem;
+    position: relative;
+    z-index: 1;
+}
+
+.monthly-goal-copy h2 {
+    margin: 0;
+    max-width: 9ch;
+    font-size: clamp(1.9rem, 1.45rem + 1.5vw, 2.4rem);
+    line-height: 0.98;
+    color: var(--text);
+}
+
+.monthly-goal-copy p {
+    margin: 0;
+    max-width: 28ch;
+    font-size: var(--text-sm);
+    line-height: 1.45;
+    color: var(--text-muted);
+}
+
+.monthly-goal-progress-head {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 0.8rem;
+    position: relative;
+    z-index: 1;
+}
+
+.monthly-goal-label {
+    display: block;
+    margin-bottom: 0.25rem;
+    color: var(--text-muted);
+    font-size: var(--text-xs);
+    font-weight: 800;
+}
+
+.monthly-goal-progress-head strong {
+    font-size: clamp(1.8rem, 1.35rem + 1vw, 2.2rem);
+    line-height: 1;
+    color: var(--text);
+}
+
+.monthly-goal-pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    white-space: nowrap;
+    min-height: 2.2rem;
+    padding: 0.45rem 0.8rem;
+    border-radius: 999px;
+    background: #ffe9f4;
+    border: 2px solid #ffc0de;
+    color: #c95190;
+    font-size: var(--text-xs);
+    font-weight: 900;
+}
+
+.monthly-goal-bar {
+    position: relative;
+    height: 1.25rem;
+    padding: 0.14rem;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.95);
+    border: 3px solid var(--border);
+    overflow: hidden;
+    z-index: 1;
+}
+
+.monthly-goal-bar-fill {
+    position: relative;
+    height: 100%;
+    min-width: 1.6rem;
+    border-radius: 999px;
+    background: linear-gradient(
+        90deg,
+        var(--lavender),
+        var(--pink),
+        var(--peach)
+    );
+}
+
+.monthly-goal-bar-dot {
+    position: absolute;
+    right: -0.7rem;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 1.5rem;
+    height: 1.5rem;
+    border-radius: 999px;
+    display: grid;
+    place-items: center;
+    background: #fff;
+    border: 2px solid var(--border);
+    color: var(--pink-strong);
+    font-size: 0.8rem;
+    box-shadow: var(--shadow-sm);
+    z-index: 20;
+}
+
+.monthly-goal-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.75rem;
+    position: relative;
+    z-index: 1;
+}
+
+.monthly-mini-card {
+    display: grid;
+    gap: 0.2rem;
+    min-height: 5.5rem;
+    align-content: start;
+    padding: 0.9rem 0.85rem;
+    border-radius: 22px;
+    background: linear-gradient(
+        180deg,
+        rgba(255, 255, 255, 0.96),
+        rgba(255, 248, 252, 0.9)
+    );
+    border: 2px solid var(--border-soft);
+    box-shadow: var(--shadow-sm);
+}
+
+.monthly-mini-card strong {
+    font-size: 1.8rem;
+    line-height: 1;
+    color: var(--text);
+}
+
+.monthly-mini-card span {
+    color: var(--text-muted);
+    font-size: var(--text-xs);
+    line-height: 1.35;
+}
+
+.weekly-goal-card .monthly-goal-icon {
+    background: linear-gradient(180deg, #dff2ff, #f7f0ff);
+}
+
+.weekly-goal-card .monthly-goal-copy h2 {
+    max-width: 10ch;
+}
+
+.weekly-goal-card .monthly-goal-copy p {
+    max-width: 30ch;
 }
 
 .onboarding-screen {
@@ -120,10 +455,12 @@
 
 .onboarding-title {
     max-width: 12ch;
+    color: var(--text);
 }
 
 .onboarding-text {
     max-width: 42ch;
+    color: var(--text-muted);
 }
 
 .calendar-screen-content,
@@ -136,11 +473,6 @@
     font-size: var(--text-xs);
     color: var(--text-muted);
     font-weight: 800;
-}
-
-.section-head h1 {
-    font-size: var(--text-lg);
-    margin: 0;
 }
 
 .bottom-nav {
@@ -197,6 +529,28 @@
         grid-template-columns: 1fr;
     }
 
+    .task-card-featured .task-title {
+        font-size: 1.12rem;
+    }
+
+    .monthly-goal-copy h2 {
+        max-width: 8.5ch;
+        font-size: 1.75rem;
+    }
+
+    .monthly-goal-progress-head {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .monthly-goal-stats {
+        grid-template-columns: 1fr;
+    }
+
+    .monthly-mini-card {
+        min-height: auto;
+    }
+
     .onboarding-title {
         max-width: none;
     }
@@ -233,4 +587,147 @@
         width: min(calc(100% - 1.2rem), 404px);
         top: 0.6rem;
     }
+}
+
+.app-root.dark .screen {
+    color: var(--text);
+}
+
+.app-root.dark .eyebrow {
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--text-muted);
+}
+
+.app-root.dark .hero-title,
+.app-root.dark .home-header h1,
+.app-root.dark .team-title,
+.app-root.dark .section-head h1,
+.app-root.dark .section-head h2 {
+    color: var(--text);
+}
+
+.app-root.dark .hero-sub,
+.app-root.dark .home-subtitle,
+.app-root.dark .metric-label,
+.app-root.dark .calendar-section-header span,
+.app-root.dark .onboarding-text,
+.app-root.dark .section-head p {
+    color: var(--text-muted);
+}
+
+.app-root.dark .metric-card strong,
+.app-root.dark .metric-value,
+.app-root.dark .onboarding-title {
+    color: var(--text);
+}
+
+.app-root.dark .task-kicker {
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--text);
+}
+
+.app-root.dark .task-card-featured {
+    background: linear-gradient(
+        180deg,
+        rgba(36, 25, 52, 0.98),
+        rgba(47, 29, 59, 0.95)
+    );
+}
+
+.app-root.dark .task-featured-glow {
+    background: radial-gradient(
+        circle,
+        rgba(245, 138, 192, 0.16),
+        rgba(245, 138, 192, 0)
+    );
+}
+
+.app-root.dark .home-summary-card {
+    background: linear-gradient(
+        180deg,
+        rgba(36, 25, 52, 0.94),
+        rgba(28, 20, 41, 0.92)
+    );
+}
+
+.app-root.dark .monthly-goal-card {
+    background: linear-gradient(
+        180deg,
+        rgba(36, 25, 52, 0.98),
+        rgba(30, 21, 44, 0.95)
+    );
+}
+
+.app-root.dark .monthly-goal-chip {
+    background: rgba(255, 255, 255, 0.06);
+    color: var(--text-muted);
+}
+
+.app-root.dark .monthly-goal-icon {
+    background: linear-gradient(
+        180deg,
+        rgba(143, 220, 255, 0.2),
+        rgba(255, 255, 255, 0.05)
+    );
+}
+
+.app-root.dark .weekly-goal-card .monthly-goal-icon {
+    background: linear-gradient(
+        180deg,
+        rgba(143, 220, 255, 0.2),
+        rgba(199, 149, 255, 0.08)
+    );
+}
+
+.app-root.dark .monthly-goal-copy h2,
+.app-root.dark .monthly-goal-progress-head strong,
+.app-root.dark .monthly-mini-card strong {
+    color: var(--text);
+}
+
+.app-root.dark .monthly-goal-copy p,
+.app-root.dark .monthly-goal-label,
+.app-root.dark .monthly-mini-card span {
+    color: var(--text-muted);
+}
+
+.app-root.dark .monthly-goal-pill {
+    background: rgba(245, 138, 192, 0.18);
+    border-color: rgba(255, 145, 192, 0.34);
+    color: #ffd4ea;
+}
+
+.app-root.dark .monthly-goal-bar {
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.app-root.dark .monthly-goal-bar-dot {
+    background: rgba(36, 25, 52, 0.96);
+    color: var(--pink);
+}
+
+.app-root.dark .monthly-mini-card {
+    background: linear-gradient(
+        180deg,
+        rgba(255, 255, 255, 0.06),
+        rgba(255, 255, 255, 0.03)
+    );
+}
+
+.app-root.dark .onboarding-visual {
+    background: linear-gradient(180deg, rgba(143, 220, 255, 0.24), rgba(255, 154, 207, 0.14));
+}
+
+.app-root.dark .bottom-nav {
+    background: linear-gradient(180deg, rgba(53, 36, 84, 0.94), rgba(42, 28, 69, 0.98));
+}
+
+.app-root.dark .nav-btn {
+    background: rgba(255, 255, 255, 0.06);
+    color: var(--text-muted);
+}
+
+.app-root.dark .nav-btn.active {
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.1), rgba(245, 138, 192, 0.16));
+    color: var(--text);
 }

@@ -14,8 +14,7 @@ export default function AppHeader({
             <div className="brand">
                 <div className="logo">🐾</div>
                 <div>
-                    <p className="brand-title">ChoreQuest</p>
-                    <p className="brand-sub">cozy chores for Pep’s ✦</p>
+                    <h1 className="brand-title">ChoreQuest</h1>
                 </div>
             </div>
 

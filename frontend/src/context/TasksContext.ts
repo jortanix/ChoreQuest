@@ -6,8 +6,12 @@ export interface TasksContextValue {
     taskList: Task[]
     completionHistory: CompletionEvent[]
     nfcBindings: NfcBinding[]
-    completeTaskById: (taskId: string) => Task | null
-    linkNfcTagToTask: (taskId: string, tagId: string, tagLabel?: string) => NfcBinding
+    completeTaskById: (taskId: string) => Promise<Task | null>
+    linkNfcTagToTask: (
+        taskId: string,
+        tagId: string,
+        tagLabel?: string
+    ) => Promise<NfcBinding>
     unlinkNfcTagFromTask: (taskId: string) => void
     getNfcBindingByTaskId: (taskId: string) => NfcBinding | null
     getTaskByNfcTagId: (tagId: string) => Task | null
