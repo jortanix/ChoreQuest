@@ -400,16 +400,170 @@
     line-height: 1.35;
 }
 
-.weekly-goal-card .monthly-goal-icon {
-    background: linear-gradient(180deg, #dff2ff, #f7f0ff);
+/* CALENDRIER UNIQUE */
+
+.planner-hero-card {
+    display: grid;
+    gap: 1rem;
+    padding: 1rem;
+    border-radius: 30px;
+    background: linear-gradient(
+        180deg,
+        rgba(240, 248, 255, 0.98),
+        rgba(248, 244, 255, 0.94)
+    );
+    border: 3px solid var(--border);
+    box-shadow: var(--shadow-md);
 }
 
-.weekly-goal-card .monthly-goal-copy h2 {
-    max-width: 10ch;
+.planner-hero-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
 }
 
-.weekly-goal-card .monthly-goal-copy p {
+.planner-kicker {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.42rem 0.72rem;
+    margin-bottom: 0.55rem;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.88);
+    border: 2px solid var(--border-soft);
+    color: var(--text-muted);
+    font-size: 12px;
+    font-weight: 900;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.planner-hero-top h2 {
+    margin: 0 0 0.35rem;
+    font-size: clamp(1.45rem, 1.2rem + 0.9vw, 1.9rem);
+    line-height: 1.02;
+    color: var(--text);
+}
+
+.planner-hero-top p {
+    margin: 0;
     max-width: 30ch;
+    color: var(--text-muted);
+    font-size: var(--text-sm);
+    line-height: 1.45;
+}
+
+.planner-hero-score {
+    min-width: 5.4rem;
+    padding: 0.85rem 0.8rem;
+    border-radius: 24px;
+    background: linear-gradient(180deg, #ffffff, #f8ecff);
+    border: 2px solid var(--border-soft);
+    text-align: center;
+    box-shadow: var(--shadow-sm);
+}
+
+.planner-hero-score strong {
+    display: block;
+    font-size: 1.55rem;
+    line-height: 1;
+    color: var(--text);
+}
+
+.planner-hero-score span {
+    display: block;
+    margin-top: 0.3rem;
+    color: var(--text-muted);
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.planner-days-strip {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 0.55rem;
+}
+
+.planner-day-pill {
+    min-height: 3rem;
+    border-radius: 18px;
+    display: grid;
+    place-items: center;
+    background: rgba(255, 255, 255, 0.7);
+    border: 2px solid var(--border-soft);
+    color: var(--text-muted);
+    box-shadow: var(--shadow-sm);
+}
+
+.planner-day-pill span {
+    font-size: var(--text-sm);
+    font-weight: 900;
+}
+
+.planner-day-pill.is-active {
+    background: linear-gradient(180deg, #ffffff, #ffe8f5);
+    border-color: var(--border);
+    color: var(--purple);
+}
+
+.planner-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.75rem;
+}
+
+.planner-summary-card {
+    display: grid;
+    gap: 0.24rem;
+    padding: 0.85rem;
+    border-radius: 22px;
+    background: rgba(255, 255, 255, 0.85);
+    border: 2px solid var(--border-soft);
+    box-shadow: var(--shadow-sm);
+}
+
+.planner-summary-card span {
+    color: var(--text-muted);
+    font-size: var(--text-xs);
+    font-weight: 800;
+}
+
+.planner-summary-card strong {
+    color: var(--text);
+    font-size: 1.55rem;
+    line-height: 1.05;
+}
+
+.planning-spotlight-card {
+    background: linear-gradient(
+        180deg,
+        rgba(255, 255, 255, 0.97),
+        rgba(246, 243, 255, 0.92)
+    );
+}
+
+.planning-card {
+    background: linear-gradient(
+        180deg,
+        rgba(255, 255, 255, 0.96),
+        rgba(247, 242, 255, 0.9)
+    );
+}
+
+.completed-event-list {
+    display: grid;
+    gap: 0.85rem;
+}
+
+.completed-card {
+    background: linear-gradient(
+        180deg,
+        rgba(240, 253, 244, 0.98),
+        rgba(248, 255, 249, 0.95)
+    );
+    border-color: #bce9c7;
 }
 
 .onboarding-screen {
@@ -551,6 +705,18 @@
         min-height: auto;
     }
 
+    .planner-hero-top {
+        flex-direction: column;
+    }
+
+    .planner-hero-score {
+        width: 100%;
+    }
+
+    .planner-summary-grid {
+        grid-template-columns: 1fr;
+    }
+
     .onboarding-title {
         max-width: none;
     }
@@ -671,14 +837,6 @@
     );
 }
 
-.app-root.dark .weekly-goal-card .monthly-goal-icon {
-    background: linear-gradient(
-        180deg,
-        rgba(143, 220, 255, 0.2),
-        rgba(199, 149, 255, 0.08)
-    );
-}
-
 .app-root.dark .monthly-goal-copy h2,
 .app-root.dark .monthly-goal-progress-head strong,
 .app-root.dark .monthly-mini-card strong {
@@ -712,6 +870,64 @@
         rgba(255, 255, 255, 0.06),
         rgba(255, 255, 255, 0.03)
     );
+}
+
+.app-root.dark .planner-hero-card {
+    background: linear-gradient(
+        180deg,
+        rgba(29, 37, 54, 0.98),
+        rgba(33, 23, 49, 0.95)
+    );
+}
+
+.app-root.dark .planner-kicker {
+    background: rgba(255, 255, 255, 0.06);
+    color: var(--text-muted);
+}
+
+.app-root.dark .planner-hero-top h2,
+.app-root.dark .planner-summary-card strong,
+.app-root.dark .planner-hero-score strong {
+    color: var(--text);
+}
+
+.app-root.dark .planner-hero-top p,
+.app-root.dark .planner-summary-card span,
+.app-root.dark .planner-hero-score span {
+    color: var(--text-muted);
+}
+
+.app-root.dark .planner-hero-score,
+.app-root.dark .planner-summary-card,
+.app-root.dark .planner-day-pill {
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.app-root.dark .planner-day-pill.is-active {
+    background: linear-gradient(
+        180deg,
+        rgba(255, 255, 255, 0.1),
+        rgba(245, 138, 192, 0.16)
+    );
+    color: var(--text);
+}
+
+.app-root.dark .planning-spotlight-card,
+.app-root.dark .planning-card {
+    background: linear-gradient(
+        180deg,
+        rgba(36, 25, 52, 0.96),
+        rgba(30, 21, 44, 0.94)
+    );
+}
+
+.app-root.dark .completed-card {
+    background: linear-gradient(
+        180deg,
+        rgba(93, 187, 136, 0.14),
+        rgba(93, 187, 136, 0.08)
+    );
+    border-color: rgba(188, 233, 199, 0.34);
 }
 
 .app-root.dark .onboarding-visual {
