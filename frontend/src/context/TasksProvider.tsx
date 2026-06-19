@@ -16,6 +16,31 @@ interface TasksProviderProps {
 
 const API_URL = import.meta.env.VITE_API_URL ?? 'http://127.0.0.1:8010/api'
 
+// ─── Token JWT en mémoire ─────────────────────────────────────────────────────
+let _accessToken: string | null = null
+
+export async function loginAndStoreToken(
+    username: string,
+    password: string
+): Promise<void> {
+    const res = await fetch(`${API_URL}/auth/login/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password }),
+    })
+    if (!res.ok) throw new Error(`Login échoué (${res.status})`)
+    const data = await res.json()
+    _accessToken = data.access
+}
+
+function authHeaders(): HeadersInit {
+    return {
+        'Content-Type': 'application/json',
+        ...(_accessToken ? { Authorization: `Bearer ${_accessToken}` } : {}),
+    }
+}
+
+// ─── Normaliseurs (inchangés) ─────────────────────────────────────────────────
 type ApiTask = {
     id: number | string
     title: string
@@ -103,17 +128,16 @@ function normalizeNfcBinding(binding: ApiNfcBinding): NfcBinding {
     }
 }
 
+// ─── Provider ─────────────────────────────────────────────────────────────────
 export function TasksProvider({ children }: TasksProviderProps) {
     const [taskList, setTaskList] = useLocalStorage<Task[]>(
         'chanti-tasks',
         initialTasks
     )
-
     const [completionHistory, setCompletionHistory] = useLocalStorage<CompletionEvent[]>(
         'chanti-completion-history',
         []
     )
-
     const [nfcBindings, setNfcBindings] = useLocalStorage<NfcBinding[]>(
         'chanti-nfc-bindings',
         []
@@ -123,138 +147,103 @@ export function TasksProvider({ children }: TasksProviderProps) {
         let isMounted = true
 
         async function bootstrapTasks() {
+            // Auto-login si pas encore de token
+            if (!_accessToken) {
+                try {
+                    await loginAndStoreToken(
+                        import.meta.env.VITE_DEFAULT_USER ?? 'lmoret',
+                        import.meta.env.VITE_DEFAULT_PASS ?? ''
+                    )
+                } catch (e) {
+                    console.warn('Auto-login échoué, données locales utilisées', e)
+                    return
+                }
+            }
+
             try {
-                const [tasksResponse, completionResponse, nfcResponse] =
-                    await Promise.all([
-                        fetch(`${API_URL}/tasks/`),
-                        fetch(`${API_URL}/completion-events/`),
-                        fetch(`${API_URL}/nfc-bindings/`),
-                    ])
+                const [tasksRes, completionRes, nfcRes] = await Promise.all([
+                    fetch(`${API_URL}/tasks/`,             { headers: authHeaders() }),
+                    fetch(`${API_URL}/completion-events/`, { headers: authHeaders() }),
+                    fetch(`${API_URL}/nfc-bindings/`,      { headers: authHeaders() }),
+                ])
 
-                if (!tasksResponse.ok) {
-                    throw new Error(`Erreur chargement tâches (${tasksResponse.status})`)
+                if (!tasksRes.ok || !completionRes.ok || !nfcRes.ok) {
+                    throw new Error('Erreur lors du chargement des données')
                 }
 
-                if (!completionResponse.ok) {
-                    throw new Error(
-                        `Erreur chargement historique (${completionResponse.status})`
-                    )
-                }
-
-                if (!nfcResponse.ok) {
-                    throw new Error(
-                        `Erreur chargement NFC (${nfcResponse.status})`
-                    )
-                }
-
-                const tasksData = await tasksResponse.json()
-                const completionData = await completionResponse.json()
-                const nfcData = await nfcResponse.json()
+                const [tasksData, completionData, nfcData] = await Promise.all([
+                    tasksRes.json(),
+                    completionRes.json(),
+                    nfcRes.json(),
+                ])
 
                 if (!isMounted) return
 
-                setTaskList(
-                    Array.isArray(tasksData)
-                        ? tasksData.map((task) => normalizeTask(task as ApiTask))
-                        : []
-                )
-
-                setCompletionHistory(
-                    Array.isArray(completionData)
-                        ? completionData.map((event) =>
-                              normalizeCompletionEvent(event as ApiCompletionEvent)
-                          )
-                        : []
-                )
-
-                setNfcBindings(
-                    Array.isArray(nfcData)
-                        ? nfcData.map((binding) =>
-                              normalizeNfcBinding(binding as ApiNfcBinding)
-                          )
-                        : []
-                )
+                setTaskList(Array.isArray(tasksData)
+                    ? tasksData.map((t) => normalizeTask(t as ApiTask))
+                    : [])
+                setCompletionHistory(Array.isArray(completionData)
+                    ? completionData.map((e) => normalizeCompletionEvent(e as ApiCompletionEvent))
+                    : [])
+                setNfcBindings(Array.isArray(nfcData)
+                    ? nfcData.map((b) => normalizeNfcBinding(b as ApiNfcBinding))
+                    : [])
             } catch (error) {
-                console.error('Impossible de charger les données backend :', error)
+                console.error('Bootstrap échoué, données locales conservées :', error)
             }
         }
 
-        bootstrapTasks()
-
-        return () => {
-            isMounted = false
-        }
+        void bootstrapTasks()
+        return () => { isMounted = false }
     }, [setTaskList, setCompletionHistory, setNfcBindings])
 
     const completeTaskById = useCallback(
         async (taskId: string) => {
-            const existingTask = taskList.find((task) => task.id === taskId)
+            const existingTask = taskList.find((t) => t.id === taskId)
             if (!existingTask) return null
 
             try {
-                const response = await fetch(`${API_URL}/tasks/${taskId}/complete/`, {
+                const res = await fetch(`${API_URL}/tasks/${taskId}/complete/`, {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
+                    headers: authHeaders(),
                 })
+                if (!res.ok) throw new Error(`HTTP ${res.status}`)
 
-                if (!response.ok) {
-                    throw new Error(`Erreur validation tâche (${response.status})`)
-                }
-
-                const data = await response.json()
+                const data = await res.json()
                 const updatedTask = normalizeTask(data.task as ApiTask)
-                const completionEvent = normalizeCompletionEvent(
-                    data.event as ApiCompletionEvent
+                const event = normalizeCompletionEvent(data.event as ApiCompletionEvent)
+
+                setTaskList((curr) =>
+                    curr.map((t) => (t.id === taskId ? updatedTask : t))
                 )
-
-                setTaskList((currentTasks) =>
-                    currentTasks.map((task) =>
-                        task.id === taskId ? updatedTask : task
-                    )
-                )
-
-                setCompletionHistory((currentHistory) => [
-                    completionEvent,
-                    ...currentHistory,
-                ])
-
+                setCompletionHistory((curr) => [event, ...curr])
                 return updatedTask
             } catch (error) {
-                console.error('Validation backend impossible, fallback local :', error)
+                console.error('Fallback local pour completeTask :', error)
 
                 let updatedTask: Task | null = null
                 let completionEvent: CompletionEvent | null = null
 
-                setTaskList((currentTasks) =>
-                    currentTasks.map((task) => {
-                        if (task.id !== taskId) return task
-
-                        updatedTask = completeTask(task)
-
+                setTaskList((curr) =>
+                    curr.map((t) => {
+                        if (t.id !== taskId) return t
+                        updatedTask = completeTask(t)
                         completionEvent = {
-                            id: `${task.id}-${Date.now()}`,
-                            taskId: task.id,
-                            taskTitle: task.title,
-                            assignee: task.assignee ?? 'Maison',
-                            points: task.points,
+                            id: `${t.id}-${Date.now()}`,
+                            taskId: t.id,
+                            taskTitle: t.title,
+                            assignee: t.assignee ?? 'Maison',
+                            points: t.points,
                             completedAt: new Date().toISOString(),
-                            frequency: task.frequency,
-                            needsNfc: task.needsNfc,
+                            frequency: t.frequency,
+                            needsNfc: t.needsNfc,
                         }
-
                         return updatedTask
                     })
                 )
-
                 if (completionEvent) {
-                    setCompletionHistory((currentHistory) => [
-                        completionEvent as CompletionEvent,
-                        ...currentHistory,
-                    ])
+                    setCompletionHistory((curr) => [completionEvent as CompletionEvent, ...curr])
                 }
-
                 return updatedTask
             }
         },
@@ -264,61 +253,35 @@ export function TasksProvider({ children }: TasksProviderProps) {
     const linkNfcTagToTask = useCallback(
         async (taskId: string, tagId: string, tagLabel?: string) => {
             try {
-                const response = await fetch(`${API_URL}/nfc-bindings/`, {
+                const res = await fetch(`${API_URL}/nfc-bindings/`, {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
+                    headers: authHeaders(),
                     body: JSON.stringify({
                         task: Number(taskId),
                         tag_id: tagId,
                         tag_label: tagLabel ?? '',
                     }),
                 })
+                if (!res.ok) throw new Error(`HTTP ${res.status}`)
 
-                if (!response.ok) {
-                    throw new Error(`Erreur liaison NFC (${response.status})`)
-                }
+                const created = await res.json()
+                const nextBinding = normalizeNfcBinding(created as ApiNfcBinding)
 
-                const createdBinding = await response.json()
-
-                const nextBinding = normalizeNfcBinding(createdBinding as ApiNfcBinding)
-
-                setNfcBindings((currentBindings) => {
-                    const withoutSameTask = currentBindings.filter(
-                        (binding) => binding.taskId !== taskId
-                    )
-
-                    const withoutSameTag = withoutSameTask.filter(
-                        (binding) => binding.tagId !== tagId
-                    )
-
-                    return [nextBinding, ...withoutSameTag]
-                })
-
+                setNfcBindings((curr) => [
+                    nextBinding,
+                    ...curr.filter((b) => b.taskId !== taskId && b.tagId !== tagId),
+                ])
                 return nextBinding
             } catch (error) {
-                console.error('Liaison NFC backend impossible, fallback local :', error)
-
+                console.error('Fallback local pour linkNfc :', error)
                 const nextBinding: NfcBinding = {
-                    taskId,
-                    tagId,
-                    tagLabel,
+                    taskId, tagId, tagLabel,
                     linkedAt: new Date().toISOString(),
                 }
-
-                setNfcBindings((currentBindings) => {
-                    const withoutSameTask = currentBindings.filter(
-                        (binding) => binding.taskId !== taskId
-                    )
-
-                    const withoutSameTag = withoutSameTask.filter(
-                        (binding) => binding.tagId !== tagId
-                    )
-
-                    return [nextBinding, ...withoutSameTag]
-                })
-
+                setNfcBindings((curr) => [
+                    nextBinding,
+                    ...curr.filter((b) => b.taskId !== taskId && b.tagId !== tagId),
+                ])
                 return nextBinding
             }
         },
@@ -327,73 +290,40 @@ export function TasksProvider({ children }: TasksProviderProps) {
 
     const unlinkNfcTagFromTask = useCallback(
         (taskId: string) => {
-            setNfcBindings((currentBindings) =>
-                currentBindings.filter((binding) => binding.taskId !== taskId)
-            )
+            setNfcBindings((curr) => curr.filter((b) => b.taskId !== taskId))
         },
         [setNfcBindings]
     )
 
     const getNfcBindingByTaskId = useCallback(
-        (taskId: string) => {
-            return nfcBindings.find((binding) => binding.taskId === taskId) ?? null
-        },
+        (taskId: string) => nfcBindings.find((b) => b.taskId === taskId) ?? null,
         [nfcBindings]
     )
 
     const getTaskByNfcTagId = useCallback(
         (tagId: string) => {
-            const binding = nfcBindings.find((item) => item.tagId === tagId)
-
+            const binding = nfcBindings.find((b) => b.tagId === tagId)
             if (!binding) return null
-
-            return taskList.find((task) => task.id === binding.taskId) ?? null
+            return taskList.find((t) => t.id === binding.taskId) ?? null
         },
         [nfcBindings, taskList]
     )
 
-    const resetTasks = useCallback(() => {
-        setTaskList(initialTasks)
-    }, [setTaskList])
+    const resetTasks   = useCallback(() => setTaskList(initialTasks), [setTaskList])
+    const clearHistory = useCallback(() => setCompletionHistory([]), [setCompletionHistory])
+    const clearNfcBindings = useCallback(() => setNfcBindings([]), [setNfcBindings])
 
-    const clearHistory = useCallback(() => {
-        setCompletionHistory([])
-    }, [setCompletionHistory])
-
-    const clearNfcBindings = useCallback(() => {
-        setNfcBindings([])
-    }, [setNfcBindings])
-
-    const value = useMemo(
-        () => ({
-            taskList,
-            completionHistory,
-            nfcBindings,
-            completeTaskById,
-            linkNfcTagToTask,
-            unlinkNfcTagFromTask,
-            getNfcBindingByTaskId,
-            getTaskByNfcTagId,
-            resetTasks,
-            clearHistory,
-            clearNfcBindings,
-            setTaskList,
-        }),
-        [
-            taskList,
-            completionHistory,
-            nfcBindings,
-            completeTaskById,
-            linkNfcTagToTask,
-            unlinkNfcTagFromTask,
-            getNfcBindingByTaskId,
-            getTaskByNfcTagId,
-            resetTasks,
-            clearHistory,
-            clearNfcBindings,
-            setTaskList,
-        ]
-    )
+    const value = useMemo(() => ({
+        taskList, completionHistory, nfcBindings,
+        completeTaskById, linkNfcTagToTask, unlinkNfcTagFromTask,
+        getNfcBindingByTaskId, getTaskByNfcTagId,
+        resetTasks, clearHistory, clearNfcBindings, setTaskList,
+    }), [
+        taskList, completionHistory, nfcBindings,
+        completeTaskById, linkNfcTagToTask, unlinkNfcTagFromTask,
+        getNfcBindingByTaskId, getTaskByNfcTagId,
+        resetTasks, clearHistory, clearNfcBindings, setTaskList,
+    ])
 
     return <TasksContext.Provider value={value}>{children}</TasksContext.Provider>
 }

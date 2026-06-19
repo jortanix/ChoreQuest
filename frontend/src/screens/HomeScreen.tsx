@@ -1,85 +1,17 @@
 import { useContext, useMemo, useState } from 'react'
 import { TasksContext } from '../context/TasksContext'
+import { useHomeDashboard } from '../hooks/useHomeDashboard'
+import { api } from '../lib/api'
 
 export function HomeScreen() {
     const tasksContext = useContext(TasksContext)
 
     const [actionError, setActionError] = useState<string | null>(null)
     const [pendingTaskId, setPendingTaskId] = useState<string | null>(null)
+    const [refreshKey, setRefreshKey] = useState(0)
 
-    if (!tasksContext) {
-        return (
-            <section className="screen home-screen">
-                <div className="home-header">
-                    <div>
-                        <span className="eyebrow">Maison</span>
-                        <h1>Accueil</h1>
-                        <p className="home-subtitle">Vue d’ensemble des tâches</p>
-                    </div>
-                </div>
-
-                <div className="screen-state-card">
-                    <p>Contexte des tâches indisponible.</p>
-                </div>
-            </section>
-        )
-    }
-
-    const {
-        taskList,
-        completeTaskById,
-        linkNfcTagToTask,
-        getNfcBindingByTaskId,
-    } = tasksContext
-
-    const totalPoints = useMemo(() => {
-        return taskList.reduce((sum, task) => sum + (task.points ?? 0), 0)
-    }, [taskList])
-
-    const completedCount = useMemo(() => {
-        return taskList.filter((task) => task.completed).length
-    }, [taskList])
-
-    const pendingTasks = useMemo(() => {
-        return taskList.filter((task) => !task.completed)
-    }, [taskList])
-
-    const completedTasks = useMemo(() => {
-        return taskList.filter((task) => task.completed)
-    }, [taskList])
-
-    const completionRate = useMemo(() => {
-        if (taskList.length === 0) return 0
-        return Math.round((completedCount / taskList.length) * 100)
-    }, [completedCount, taskList.length])
-
-    const featuredTask = useMemo(() => {
-        return pendingTasks[0] ?? null
-    }, [pendingTasks])
-
-    const secondaryPendingTasks = useMemo(() => {
-        return pendingTasks.slice(1)
-    }, [pendingTasks])
-
-    const completedPoints = useMemo(() => {
-        return completedTasks.reduce((sum, task) => sum + (task.points ?? 0), 0)
-    }, [completedTasks])
-
-    const monthlyGoal = useMemo(() => {
-        return Math.max(1500, Math.ceil(totalPoints / 250) * 250)
-    }, [totalPoints])
-
-    const monthlyProgress = useMemo(() => {
-        if (monthlyGoal === 0) return 0
-        return Math.min(100, Math.round((completedPoints / monthlyGoal) * 100))
-    }, [completedPoints, monthlyGoal])
-
-    const overdueCount = useMemo(() => {
-        return pendingTasks.filter((task) => {
-            const due = (task.dueLabel || '').toLowerCase()
-            return due.includes('retard') || due.includes('hier')
-        }).length
-    }, [pendingTasks])
+    // ─── Données backend ─────────────────────────────────────────────────────
+    const { data: dash, loading: dashLoading, error: dashError } = useHomeDashboard(refreshKey)
 
     const todayLabel = useMemo(() => {
         return new Intl.DateTimeFormat('fr-FR', {
@@ -89,16 +21,55 @@ export function HomeScreen() {
         }).format(new Date())
     }, [])
 
+    // ─── Guard contexte ───────────────────────────────────────────────────────
+    if (!tasksContext) {
+        return (
+            <section className="screen home-screen">
+                <div className="home-header">
+                    <div>
+                        <span className="eyebrow">Maison</span>
+                        <h1>Accueil</h1>
+                        <p className="home-subtitle">Vue d'ensemble des tâches</p>
+                    </div>
+                </div>
+                <div className="screen-state-card">
+                    <p>Contexte des tâches indisponible.</p>
+                </div>
+            </section>
+        )
+    }
+
+    const { taskList, linkNfcTagToTask, getNfcBindingByTaskId } = tasksContext
+
+    // ─── Calculs locaux (conservés pour les listes de cartes) ─────────────────
+    const pendingTasks = useMemo(() => taskList.filter((t) => !t.completed), [taskList])
+    const completedTasks = useMemo(() => taskList.filter((t) => t.completed), [taskList])
+    const featuredTask = useMemo(() => pendingTasks[0] ?? null, [pendingTasks])
+    const secondaryPendingTasks = useMemo(() => pendingTasks.slice(1), [pendingTasks])
+
+    // ─── Stats : backend en priorité, fallback local ───────────────────────────
+    const completedCount  = dash?.monthlyGoal.completed  ?? completedTasks.length
+    const monthlyGoal     = dash?.monthlyGoal.goal       ?? Math.max(taskList.length, 1)
+    const monthlyProgress = dash?.monthlyGoal.percentage ?? 0
+    const streakDays      = dash?.streakDays             ?? 0
+    const todayDone       = dash?.todayDone              ?? 0
+    const todayTotal      = dash?.todayTotal             ?? pendingTasks.length
+    const overdueCount    = dash?.overdueCount           ?? 0
+    const completionRate  = dash?.completionRate         ?? (
+        taskList.length === 0 ? 0 : Math.round((completedTasks.length / taskList.length) * 100)
+    )
+
+    // ─── Actions ──────────────────────────────────────────────────────────────
     const handleCompleteTask = async (taskId: string) => {
         try {
             setActionError(null)
             setPendingTaskId(taskId)
-            await completeTaskById(taskId)
+            const today = new Date().toISOString().slice(0, 10)
+            await api.completeTask(taskId, today)
+            setRefreshKey((k) => k + 1) // re-fetch dashboard
         } catch (error) {
             setActionError(
-                error instanceof Error
-                    ? error.message
-                    : 'Impossible de compléter la tâche.'
+                error instanceof Error ? error.message : 'Impossible de compléter la tâche.'
             )
         } finally {
             setPendingTaskId(null)
@@ -107,11 +78,7 @@ export function HomeScreen() {
 
     const handleLinkNfc = async (taskId: string) => {
         const tagId = window.prompt('Identifiant du badge NFC :')
-
-        if (!tagId || !tagId.trim()) {
-            return
-        }
-
+        if (!tagId?.trim()) return
         const tagLabel = window.prompt('Nom du badge NFC (optionnel) :') ?? ''
 
         try {
@@ -120,25 +87,20 @@ export function HomeScreen() {
             await linkNfcTagToTask(taskId, tagId.trim(), tagLabel.trim())
         } catch (error) {
             setActionError(
-                error instanceof Error
-                    ? error.message
-                    : 'Impossible de lier le badge NFC.'
+                error instanceof Error ? error.message : 'Impossible de lier le badge NFC.'
             )
         } finally {
             setPendingTaskId(null)
         }
     }
 
-    const renderTaskCard = (
-        taskId: string,
-        variant: 'default' | 'compact' = 'default'
-    ) => {
+    // ─── Composant carte tâche ────────────────────────────────────────────────
+    const renderTaskCard = (taskId: string, variant: 'default' | 'compact' = 'default') => {
         const task = taskList.find((item) => item.id === taskId)
-
         if (!task) return null
 
-        const binding = getNfcBindingByTaskId(task.id)
-        const isPending = pendingTaskId === task.id
+        const binding    = getNfcBindingByTaskId(task.id)
+        const isPending  = pendingTaskId === task.id
         const isCompleted = task.completed
 
         return (
@@ -149,50 +111,35 @@ export function HomeScreen() {
                 <div className="task-top">
                     <div>
                         <h3 className="task-title">{task.title}</h3>
-                        <p className="task-meta">
-                            {task.description || 'Sans description'}
-                        </p>
+                        <p className="task-meta">{task.description || 'Sans description'}</p>
                     </div>
-
                     <span className={`badge ${isCompleted ? 'pet' : 'alert'}`}>
                         {isCompleted ? 'Terminée' : 'À faire'}
                     </span>
                 </div>
 
                 <div className="row-badges">
-                    <span className="pill">
-                        {task.frequency || 'Fréquence non définie'}
-                    </span>
+                    <span className="pill">{task.frequency || 'Fréquence non définie'}</span>
                     <span className="pill">{task.points ?? 0} points</span>
-                    <span className="badge nfc">
-                        NFC : {task.needsNfc ? 'Oui' : 'Non'}
-                    </span>
+                    <span className="badge nfc">NFC : {task.needsNfc ? 'Oui' : 'Non'}</span>
                 </div>
 
                 <div className="pill-row">
-                    <span className="pill">
-                        Assigné à : {task.assignee || 'Non assigné'}
-                    </span>
-                    <span className="pill">
-                        Échéance : {task.dueLabel || '—'}
-                    </span>
+                    <span className="pill">Assigné à : {task.assignee || 'Non assigné'}</span>
+                    <span className="pill">Échéance : {task.dueLabel || '—'}</span>
                 </div>
 
-                {binding ? (
+                {binding && (
                     <div className="pill-row">
                         <span className="pill">
                             Badge lié : {binding.tagLabel?.trim() || binding.tagId}
                         </span>
                     </div>
-                ) : null}
+                )}
 
                 <div className="task-actions">
                     {isCompleted ? (
-                        <button
-                            className="btn btn-primary"
-                            type="button"
-                            disabled
-                        >
+                        <button className="btn btn-primary" type="button" disabled>
                             Terminée
                         </button>
                     ) : (
@@ -205,7 +152,6 @@ export function HomeScreen() {
                             {isPending ? 'Traitement…' : 'Compléter'}
                         </button>
                     )}
-
                     <button
                         className="btn btn-secondary"
                         type="button"
@@ -219,29 +165,28 @@ export function HomeScreen() {
         )
     }
 
+    // ─── Render ───────────────────────────────────────────────────────────────
     return (
         <section className="screen home-screen">
+
+            {/* En-tête */}
             <div className="home-header">
                 <div>
-                    <span className="eyebrow">Aujourd’hui · {todayLabel}</span>
+                    <span className="eyebrow">Aujourd'hui · {todayLabel}</span>
                     <h1>Accueil</h1>
                     <p className="home-subtitle">
                         {pendingTasks.length > 0
-                            ? `${pendingTasks.length} tâche${
-                                  pendingTasks.length > 1 ? 's' : ''
-                              } à terminer`
+                            ? `${pendingTasks.length} tâche${pendingTasks.length > 1 ? 's' : ''} à terminer`
                             : 'Tout est à jour pour le moment'}
                     </p>
                 </div>
             </div>
 
+            {/* Bloc objectif mensuel */}
             <section className="home-section">
                 <article className="monthly-goal-card">
                     <div className="monthly-goal-top">
-                        <span className="monthly-goal-chip">
-                            ♡ Objectif mensuel de mai
-                        </span>
-
+                        <span className="monthly-goal-chip">♡ Objectif mensuel</span>
                         <div className="monthly-goal-icon">🐾</div>
                     </div>
 
@@ -249,23 +194,20 @@ export function HomeScreen() {
                         <h2>Rendre la maison cute, propre et à jour.</h2>
                         <p>
                             Chaque tâche complétée fait avancer la jauge du mois,
-                            nourrit le streak d’équipe et débloque des récompenses.
+                            nourrit le streak d'équipe et débloque des récompenses.
                         </p>
                     </div>
 
                     <div className="monthly-goal-progress-head">
                         <div>
-                            <span className="monthly-goal-label">
-                                Progression d’équipe
-                            </span>
-                            <strong>
-                                {completedPoints} / {monthlyGoal}
-                            </strong>
+                            <span className="monthly-goal-label">Progression d'équipe</span>
+                            {dashLoading ? (
+                                <strong className="skeleton skeleton-text" style={{ width: 80 }} />
+                            ) : (
+                                <strong>{completedCount} / {monthlyGoal}</strong>
+                            )}
                         </div>
-
-                        <span className="monthly-goal-pill">
-                            {monthlyProgress}% rempli
-                        </span>
+                        <span className="monthly-goal-pill">{monthlyProgress}% rempli</span>
                     </div>
 
                     <div
@@ -280,37 +222,53 @@ export function HomeScreen() {
                         </div>
                     </div>
 
+                    {/* 3 mini-cartes de stats */}
                     <div className="monthly-goal-stats">
                         <article className="monthly-mini-card">
-                            <strong>{completedCount}</strong>
-                            <span>streak d’équipe</span>
+                            {dashLoading
+                                ? <span className="skeleton skeleton-text" style={{ width: 32, height: 28 }} />
+                                : <strong>{streakDays}</strong>
+                            }
+                            <span>streak d'équipe</span>
                         </article>
 
                         <article className="monthly-mini-card">
-                            <strong>{pendingTasks.length}</strong>
+                            {dashLoading
+                                ? <span className="skeleton skeleton-text" style={{ width: 32, height: 28 }} />
+                                : <strong>{todayDone}/{todayTotal}</strong>
+                            }
                             <span>tâches du jour</span>
                         </article>
 
                         <article className="monthly-mini-card">
-                            <strong>{overdueCount}</strong>
+                            {dashLoading
+                                ? <span className="skeleton skeleton-text" style={{ width: 32, height: 28 }} />
+                                : <strong>{overdueCount}</strong>
+                            }
                             <span>retards à corriger</span>
                         </article>
                     </div>
+
+                    {/* Erreur dashboard non bloquante */}
+                    {dashError && (
+                        <p className="dashboard-error-hint">
+                            ⚠ Stats indisponibles ({dashError})
+                        </p>
+                    )}
                 </article>
             </section>
 
+            {/* Métriques rapides */}
             <section className="home-section">
                 <div className="home-metrics">
                     <div className="metric-card">
                         <span className="metric-label">En cours</span>
                         <strong>{pendingTasks.length}</strong>
                     </div>
-
                     <div className="metric-card">
                         <span className="metric-label">Terminées</span>
                         <strong>{completedCount}</strong>
                     </div>
-
                     <div className="metric-card">
                         <span className="metric-label">Progression</span>
                         <strong>{completionRate}%</strong>
@@ -318,7 +276,8 @@ export function HomeScreen() {
                 </div>
             </section>
 
-            {featuredTask ? (
+            {/* Focus du jour */}
+            {featuredTask && (
                 <section className="home-section">
                     <div className="section-head">
                         <h2>Focus du jour</h2>
@@ -336,17 +295,12 @@ export function HomeScreen() {
                                     {featuredTask.description || 'Sans description'}
                                 </p>
                             </div>
-
                             <span className="badge alert">À faire</span>
                         </div>
 
                         <div className="row-badges">
-                            <span className="pill">
-                                {featuredTask.frequency || 'Fréquence non définie'}
-                            </span>
-                            <span className="pill">
-                                {featuredTask.points ?? 0} points
-                            </span>
+                            <span className="pill">{featuredTask.frequency || 'Fréquence non définie'}</span>
+                            <span className="pill">{featuredTask.points ?? 0} points</span>
                             <span className="badge nfc">
                                 NFC : {featuredTask.needsNfc ? 'Oui' : 'Non'}
                             </span>
@@ -361,16 +315,15 @@ export function HomeScreen() {
                             </span>
                         </div>
 
-                        {getNfcBindingByTaskId(featuredTask.id) ? (
+                        {getNfcBindingByTaskId(featuredTask.id) && (
                             <div className="pill-row">
                                 <span className="pill">
                                     Badge lié :{' '}
-                                    {getNfcBindingByTaskId(featuredTask.id)
-                                        ?.tagLabel?.trim() ||
+                                    {getNfcBindingByTaskId(featuredTask.id)?.tagLabel?.trim() ||
                                         getNfcBindingByTaskId(featuredTask.id)?.tagId}
                                 </span>
                             </div>
-                        ) : null}
+                        )}
 
                         <div className="task-actions">
                             <button
@@ -379,32 +332,29 @@ export function HomeScreen() {
                                 onClick={() => void handleCompleteTask(featuredTask.id)}
                                 disabled={pendingTaskId === featuredTask.id}
                             >
-                                {pendingTaskId === featuredTask.id
-                                    ? 'Traitement…'
-                                    : 'Compléter'}
+                                {pendingTaskId === featuredTask.id ? 'Traitement…' : 'Compléter'}
                             </button>
-
                             <button
                                 className="btn btn-secondary"
                                 type="button"
                                 onClick={() => void handleLinkNfc(featuredTask.id)}
                                 disabled={pendingTaskId === featuredTask.id}
                             >
-                                {getNfcBindingByTaskId(featuredTask.id)
-                                    ? 'Modifier NFC'
-                                    : 'Lier NFC'}
+                                {getNfcBindingByTaskId(featuredTask.id) ? 'Modifier NFC' : 'Lier NFC'}
                             </button>
                         </div>
                     </article>
                 </section>
-            ) : null}
+            )}
 
-            {actionError ? (
+            {/* Erreur action */}
+            {actionError && (
                 <div className="screen-state-card">
                     <p>Erreur : {actionError}</p>
                 </div>
-            ) : null}
+            )}
 
+            {/* À faire ensuite */}
             <section className="home-section">
                 <div className="section-head">
                     <h2>À faire ensuite</h2>
@@ -421,13 +371,12 @@ export function HomeScreen() {
                     </div>
                 ) : (
                     <div className="task-list">
-                        {secondaryPendingTasks.map((task) =>
-                            renderTaskCard(task.id, 'compact')
-                        )}
+                        {secondaryPendingTasks.map((task) => renderTaskCard(task.id, 'compact'))}
                     </div>
                 )}
             </section>
 
+            {/* Déjà fait */}
             <section className="home-section">
                 <div className="section-head">
                     <h2>Déjà fait</h2>
@@ -440,27 +389,26 @@ export function HomeScreen() {
                     </div>
                 ) : (
                     <div className="task-list">
-                        {completedTasks.map((task) =>
-                            renderTaskCard(task.id, 'compact')
-                        )}
+                        {completedTasks.map((task) => renderTaskCard(task.id, 'compact'))}
                     </div>
                 )}
             </section>
 
+            {/* Vue d'ensemble */}
             <section className="home-section">
                 <div className="section-head">
-                    <h2>Vue d’ensemble</h2>
+                    <h2>Vue d'ensemble</h2>
                 </div>
-
                 <div className="card home-summary-card">
                     <p>
-                        {completedCount} tâche{completedCount > 1 ? 's' : ''}{' '}
-                        complétée{completedCount > 1 ? 's' : ''} sur {taskList.length},
-                        pour un total de {totalPoints} points et une progression de{' '}
-                        {completionRate}%.
+                        {completedCount} tâche{completedCount > 1 ? 's' : ''} complétée
+                        {completedCount > 1 ? 's' : ''} sur {taskList.length}, pour une
+                        progression de {completionRate}%.
+                        {streakDays > 0 && ` Streak actuel : ${streakDays} jour${streakDays > 1 ? 's' : ''}.`}
                     </p>
                 </div>
             </section>
+
         </section>
     )
 }
