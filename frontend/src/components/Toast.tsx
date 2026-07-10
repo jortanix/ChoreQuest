@@ -1,4 +1,4 @@
-import type { ToastItem } from '../types/toast'
+﻿import type { ToastItem } from '../types/toast'
 
 type ToastProps = {
     toast: ToastItem | null

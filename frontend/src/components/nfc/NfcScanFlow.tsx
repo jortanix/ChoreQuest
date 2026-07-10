@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from 'react'
+﻿import { useEffect, useMemo, useRef } from 'react'
 import type { Task } from '../../types'
 import type { NfcFlowMode } from '../../types/nfc'
 import { useNfcScanner } from '../../hooks/useNfcScanner'

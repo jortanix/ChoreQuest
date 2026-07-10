@@ -1,4 +1,4 @@
-type SkeletonBlockProps = {
+﻿type SkeletonBlockProps = {
     width?: string
     height?: string
     rounded?: boolean

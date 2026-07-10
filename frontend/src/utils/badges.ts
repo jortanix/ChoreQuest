@@ -1,4 +1,4 @@
-import type { CompletionEvent, Task } from '../types'
+﻿import type { CompletionEvent, Task } from '../types'
 
 export type DerivedBadge = {
     id: string

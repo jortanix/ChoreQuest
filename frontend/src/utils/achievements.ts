@@ -1,4 +1,4 @@
-import type { Achievement } from '../types/achievements'
+﻿import type { Achievement } from '../types/achievements'
 
 export function getAchievementProgressPercent(achievement: Achievement): number {
     if (achievement.target <= 0) {

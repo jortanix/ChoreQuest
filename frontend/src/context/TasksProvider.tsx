@@ -9,6 +9,7 @@ import { useLocalStorage } from '../hooks/useLocalStorage'
 import type { CompletionEvent, NfcBinding, Task } from '../types'
 import { TasksContext } from './TasksContext'
 import { completeTask } from '../utils/streaks'
+import { getAccessToken } from '../lib/api'
 
 interface TasksProviderProps {
     children: ReactNode
@@ -16,31 +17,16 @@ interface TasksProviderProps {
 
 const API_URL = import.meta.env.VITE_API_URL ?? 'http://127.0.0.1:8010/api'
 
-// ─── Token JWT en mémoire ─────────────────────────────────────────────────────
-let _accessToken: string | null = null
-
-export async function loginAndStoreToken(
-    username: string,
-    password: string
-): Promise<void> {
-    const res = await fetch(`${API_URL}/auth/login/`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password }),
-    })
-    if (!res.ok) throw new Error(`Login échoué (${res.status})`)
-    const data = await res.json()
-    _accessToken = data.access
-}
-
 function authHeaders(): HeadersInit {
+    const token = getAccessToken()
     return {
         'Content-Type': 'application/json',
-        ...(_accessToken ? { Authorization: `Bearer ${_accessToken}` } : {}),
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
     }
 }
 
-// ─── Normaliseurs (inchangés) ─────────────────────────────────────────────────
+// ─── Normaliseurs ─────────────────────────────────────────────────────────────
+
 type ApiTask = {
     id: number | string
     title: string
@@ -84,81 +70,70 @@ type ApiNfcBinding = {
 
 function normalizeTask(task: ApiTask): Task {
     return {
-        id: String(task.id),
-        title: task.title,
-        description: task.description ?? '',
-        frequency: task.frequency,
-        points: task.points ?? 0,
-        dueLabel: task.due_label ?? '',
-        category: task.category ?? 'general',
-        assignee: task.assignee ?? 'Maison',
-        needsNfc: task.needs_nfc ?? false,
-        nfcLabel: task.nfc_label ?? '',
-        critical: task.critical ?? false,
-        penaltyLabel: task.penalty_label ?? '',
-        streakBonus: task.streak_bonus ?? 0,
-        completed: task.completed ?? false,
-        completedToday: task.completed_today ?? false,
-        completedThisPeriod: task.completed_this_period ?? false,
-        currentStreak: task.current_streak ?? 0,
-        bestStreak: task.best_streak ?? 0,
-        lastCompletedAt: task.last_completed_at ?? null,
+        id:                   String(task.id),
+        title:                task.title,
+        description:          task.description ?? '',
+        frequency:            task.frequency,
+        points:               task.points ?? 0,
+        dueLabel:             task.due_label ?? '',
+        category:             task.category ?? 'general',
+        assignee:             task.assignee ?? 'Maison',
+        needsNfc:             task.needs_nfc ?? false,
+        nfcLabel:             task.nfc_label ?? '',
+        critical:             task.critical ?? false,
+        penaltyLabel:         task.penalty_label ?? '',
+        streakBonus:          task.streak_bonus ?? 0,
+        completed:            task.completed ?? false,
+        completedToday:       task.completed_today ?? false,
+        completedThisPeriod:  task.completed_this_period ?? false,
+        currentStreak:        task.current_streak ?? 0,
+        bestStreak:           task.best_streak ?? 0,
+        lastCompletedAt:      task.last_completed_at ?? null,
     }
 }
 
 function normalizeCompletionEvent(event: ApiCompletionEvent): CompletionEvent {
     return {
-        id: String(event.id),
-        taskId: String(event.task_id),
-        taskTitle: event.task_title,
-        assignee: event.assignee ?? 'Maison',
-        points: event.points ?? 0,
+        id:         String(event.id),
+        taskId:     String(event.task_id),
+        taskTitle:  event.task_title,
+        assignee:   event.assignee ?? 'Maison',
+        points:     event.points ?? 0,
         completedAt: event.completed_at,
-        frequency: event.frequency,
-        needsNfc: event.needs_nfc ?? false,
+        frequency:  event.frequency,
+        needsNfc:   event.needs_nfc ?? false,
     }
 }
 
 function normalizeNfcBinding(binding: ApiNfcBinding): NfcBinding {
     return {
-        taskId: String(binding.task_id),
-        tagId: binding.tag_id,
+        taskId:   String(binding.task_id),
+        tagId:    binding.tag_id,
         tagLabel: binding.tag_label,
         linkedAt: binding.linked_at,
     }
 }
 
 // ─── Provider ─────────────────────────────────────────────────────────────────
+
 export function TasksProvider({ children }: TasksProviderProps) {
     const [taskList, setTaskList] = useLocalStorage<Task[]>(
-        'chanti-tasks',
-        initialTasks
+        'chanti-tasks', initialTasks
     )
     const [completionHistory, setCompletionHistory] = useLocalStorage<CompletionEvent[]>(
-        'chanti-completion-history',
-        []
+        'chanti-completion-history', []
     )
     const [nfcBindings, setNfcBindings] = useLocalStorage<NfcBinding[]>(
-        'chanti-nfc-bindings',
-        []
+        'chanti-nfc-bindings', []
     )
 
+    // Charge les données depuis le backend (token déjà dispo via LoginScreen)
     useEffect(() => {
         let isMounted = true
 
-        async function bootstrapTasks() {
-            // Auto-login si pas encore de token
-            if (!_accessToken) {
-                try {
-                    await loginAndStoreToken(
-                        import.meta.env.VITE_DEFAULT_USER ?? 'lmoret',
-                        import.meta.env.VITE_DEFAULT_PASS ?? ''
-                    )
-                } catch (e) {
-                    console.warn('Auto-login échoué, données locales utilisées', e)
-                    return
-                }
-            }
+        async function bootstrap() {
+            // Si pas de token, on ne tente rien (LoginScreen n'a pas encore validé)
+            if (!getAccessToken()) return
 
             try {
                 const [tasksRes, completionRes, nfcRes] = await Promise.all([
@@ -168,7 +143,7 @@ export function TasksProvider({ children }: TasksProviderProps) {
                 ])
 
                 if (!tasksRes.ok || !completionRes.ok || !nfcRes.ok) {
-                    throw new Error('Erreur lors du chargement des données')
+                    throw new Error('Erreur chargement donnees')
                 }
 
                 const [tasksData, completionData, nfcData] = await Promise.all([
@@ -189,11 +164,11 @@ export function TasksProvider({ children }: TasksProviderProps) {
                     ? nfcData.map((b) => normalizeNfcBinding(b as ApiNfcBinding))
                     : [])
             } catch (error) {
-                console.error('Bootstrap échoué, données locales conservées :', error)
+                console.error('Bootstrap echoue, donnees locales conservees :', error)
             }
         }
 
-        void bootstrapTasks()
+        void bootstrap()
         return () => { isMounted = false }
     }, [setTaskList, setCompletionHistory, setNfcBindings])
 
@@ -213,13 +188,11 @@ export function TasksProvider({ children }: TasksProviderProps) {
                 const updatedTask = normalizeTask(data.task as ApiTask)
                 const event = normalizeCompletionEvent(data.event as ApiCompletionEvent)
 
-                setTaskList((curr) =>
-                    curr.map((t) => (t.id === taskId ? updatedTask : t))
-                )
+                setTaskList((curr) => curr.map((t) => t.id === taskId ? updatedTask : t))
                 setCompletionHistory((curr) => [event, ...curr])
                 return updatedTask
             } catch (error) {
-                console.error('Fallback local pour completeTask :', error)
+                console.error('Fallback local completeTask :', error)
 
                 let updatedTask: Task | null = null
                 let completionEvent: CompletionEvent | null = null
@@ -229,14 +202,14 @@ export function TasksProvider({ children }: TasksProviderProps) {
                         if (t.id !== taskId) return t
                         updatedTask = completeTask(t)
                         completionEvent = {
-                            id: `${t.id}-${Date.now()}`,
-                            taskId: t.id,
-                            taskTitle: t.title,
-                            assignee: t.assignee ?? 'Maison',
-                            points: t.points,
+                            id:          `${t.id}-${Date.now()}`,
+                            taskId:      t.id,
+                            taskTitle:   t.title,
+                            assignee:    t.assignee ?? 'Maison',
+                            points:      t.points,
                             completedAt: new Date().toISOString(),
-                            frequency: t.frequency,
-                            needsNfc: t.needsNfc,
+                            frequency:   t.frequency,
+                            needsNfc:    t.needsNfc,
                         }
                         return updatedTask
                     })
@@ -257,8 +230,8 @@ export function TasksProvider({ children }: TasksProviderProps) {
                     method: 'POST',
                     headers: authHeaders(),
                     body: JSON.stringify({
-                        task: Number(taskId),
-                        tag_id: tagId,
+                        task:      Number(taskId),
+                        tag_id:    tagId,
                         tag_label: tagLabel ?? '',
                     }),
                 })
@@ -273,7 +246,7 @@ export function TasksProvider({ children }: TasksProviderProps) {
                 ])
                 return nextBinding
             } catch (error) {
-                console.error('Fallback local pour linkNfc :', error)
+                console.error('Fallback local linkNfc :', error)
                 const nextBinding: NfcBinding = {
                     taskId, tagId, tagLabel,
                     linkedAt: new Date().toISOString(),
@@ -309,8 +282,8 @@ export function TasksProvider({ children }: TasksProviderProps) {
         [nfcBindings, taskList]
     )
 
-    const resetTasks   = useCallback(() => setTaskList(initialTasks), [setTaskList])
-    const clearHistory = useCallback(() => setCompletionHistory([]), [setCompletionHistory])
+    const resetTasks       = useCallback(() => setTaskList(initialTasks), [setTaskList])
+    const clearHistory     = useCallback(() => setCompletionHistory([]), [setCompletionHistory])
     const clearNfcBindings = useCallback(() => setNfcBindings([]), [setNfcBindings])
 
     const value = useMemo(() => ({

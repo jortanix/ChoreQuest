@@ -1,4 +1,4 @@
-export type ToastType = 'default' | 'success' | 'warning' | 'achievement'
+﻿export type ToastType = 'default' | 'success' | 'warning' | 'achievement'
 
 export type ToastItem = {
     id: string

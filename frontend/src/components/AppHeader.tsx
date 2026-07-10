@@ -1,4 +1,4 @@
-import type { ThemeMode } from '../types/app'
+﻿import type { ThemeMode } from '../types/app'
 
 type AppHeaderProps = {
     theme: ThemeMode

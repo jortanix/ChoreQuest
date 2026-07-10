@@ -1,4 +1,4 @@
-import type { Screen } from '../types/app'
+﻿import type { Screen } from '../types/app'
 
 export type NavigationItem = {
     screen: Screen

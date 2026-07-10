@@ -1,4 +1,4 @@
-import type { CompletionEvent, NfcBinding, Task } from '../../types'
+﻿import type { CompletionEvent, NfcBinding, Task } from '../../types'
 
 type TaskDetailsSheetProps = {
     isOpen: boolean

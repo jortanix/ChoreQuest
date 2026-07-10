@@ -1,14 +1,31 @@
-let accessToken: string | null = null;
+import { setAccessToken, clearAccessToken, getAccessToken } from './api'
 
-export const getToken = () => accessToken;
+const BASE = import.meta.env.VITE_API_URL ?? "http://localhost:8010/api"
 
-export async function login(username: string, password: string) {
-  const res = await fetch(`${import.meta.env.VITE_API_URL}/auth/login/`, {
+export async function login(username: string, password: string): Promise<void> {
+  const res = await fetch(`${BASE}/auth/login/`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ username, password }),
-  });
-  const data = await res.json();
-  accessToken = data.access;
-  return data;
+  })
+
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}))
+    throw new Error(
+      typeof data?.detail === "string"
+        ? data.detail
+        : "Identifiants invalides"
+    )
+  }
+
+  const { access } = await res.json()
+  setAccessToken(access)
+}
+
+export function logout(): void {
+  clearAccessToken()
+}
+
+export function isAuthenticated(): boolean {
+  return !!getAccessToken()
 }

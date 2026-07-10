@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+﻿import { useEffect, useState } from 'react'
 import type { ToastItem, ToastType } from '../types/toast'
 
 export function useToastQueue() {

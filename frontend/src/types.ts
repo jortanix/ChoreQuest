@@ -1,4 +1,4 @@
-export type TaskFrequency =
+﻿export type TaskFrequency =
     | 'daily'
     | 'weekly'
     | 'biweekly'
