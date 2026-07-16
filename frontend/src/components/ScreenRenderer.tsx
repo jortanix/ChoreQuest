@@ -1,45 +1,44 @@
-import { HomeScreen } from '../screens/HomeScreen'
-import TeamScreen from '../screens/TeamScreen'
-import CalendarScreen from '../screens/CalendarScreen'
-import SettingsScreen from '../screens/SettingsScreen'
-import AchievementsScreen from '../screens/AchievementsScreen'
-import type { ToastType } from '../types/toast'
 import type { Screen } from '../types/app'
+import { HomeScreen } from '../screens/HomeScreen'
+import TaskFormScreen     from '../screens/TaskFormScreen'
+import CalendarScreen     from '../screens/CalendarScreen'
+import AchievementsScreen from '../screens/AchievementsScreen'
+import TeamScreen         from '../screens/TeamScreen'
 
-type ScreenRendererProps = {
-    activeScreen: Screen
-    onShowToast: (message: string, type?: ToastType) => void
+type ToastType = 'success' | 'error' | 'default'
+
+type Props = {
+    activeScreen:   Screen
+    onShowToast:    (msg: string, type: ToastType) => void
     onChangeScreen: (screen: Screen) => void
 }
 
-export default function ScreenRenderer({
-                                           activeScreen,
-                                           onShowToast,
-                                           onChangeScreen,
-                                       }: ScreenRendererProps) {
-    if (activeScreen === 'home') {
-        return <HomeScreen />
+export default function ScreenRenderer({ activeScreen, onShowToast, onChangeScreen }: Props) {
+    switch (activeScreen) {
+        case 'home':
+            return <HomeScreen onShowToast={onShowToast} onChangeScreen={onChangeScreen} />
+        case 'add':
+            return (
+                <TaskFormScreen
+                    onSuccess={() => {
+                        onShowToast('Tâche créée !', 'success')
+                        onChangeScreen('home')
+                    }}
+                    onCancel={() => onChangeScreen('home')}
+                />
+            )
+        case 'calendar':
+            return (
+                <CalendarScreen
+                    onCreateTask={() => onChangeScreen('add')}
+                    onGoHome={() => onChangeScreen('home')}
+                />
+            )
+        case 'achievements':
+            return <AchievementsScreen />
+        case 'team':
+            return <TeamScreen />
+        default:
+            return null
     }
-
-    if (activeScreen === 'team') {
-        return <TeamScreen />
-    }
-
-    if (activeScreen === 'calendar') {
-        return (
-            <CalendarScreen
-                onCreateTask={() => {
-                    onChangeScreen('home')
-                    onShowToast('Ajoute une nouvelle tâche depuis l’accueil ✨')
-                }}
-                onGoHome={() => onChangeScreen('home')}
-            />
-        )
-    }
-
-    if (activeScreen === 'achievements') {
-        return <AchievementsScreen onGoHome={() => onChangeScreen('home')} />
-    }
-
-    return <SettingsScreen />
 }

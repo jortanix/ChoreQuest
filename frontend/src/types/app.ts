@@ -1,11 +1,8 @@
-export const APP_SCREENS = [
-    'home',
-    'team',
-    'calendar',
-    'achievements',
-    'settings',
-] as const
-
-export type Screen = (typeof APP_SCREENS)[number]
+export type Screen =
+    | 'home'
+    | 'calendar'
+    | 'add'
+    | 'achievements'
+    | 'team'
 
 export type ThemeMode = 'light' | 'dark'

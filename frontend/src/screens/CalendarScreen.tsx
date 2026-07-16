@@ -162,6 +162,14 @@ export default function CalendarScreen({ onCreateTask, onGoHome }: CalendarScree
                             Une vue pratique du rythme de la semaine et des taches deja bouclees.
                         </p>
                     </div>
+                    <button
+                        type="button"
+                        className="btn-fab"
+                        onClick={onCreateTask}
+                        aria-label="Créer une tâche"
+                    >
+                        +
+                    </button>
                 </div>
 
                 <section className="home-section">
