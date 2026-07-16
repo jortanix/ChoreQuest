@@ -1,130 +1,144 @@
-import React, { FormEvent, useMemo, useState } from 'react';
+import { useMemo, useState, type FormEvent } from 'react'
+import { useTasks } from '../context/useTasks'
+import type { TaskCategory, TaskFrequency } from '../types'
 
-type TaskPriority = 'low' | 'medium' | 'high';
-type TaskCategory = 'home' | 'school' | 'health' | 'pet' | 'other';
+type TaskPriority = 'low' | 'medium' | 'high'
 
-export type TaskFormValues = {
-  title: string;
-  description: string;
-  category: TaskCategory;
-  priority: TaskPriority;
-  dueDate: string;
-  dueTime: string;
-  rewardPoints: number;
-  recurring: boolean;
-  reminder: boolean;
-};
+type TaskFormValues = {
+  title: string
+  description: string
+  category: TaskCategory
+  priority: TaskPriority
+  frequency: TaskFrequency
+  dueDate: string
+  points: number
+  needsNfc: boolean
+}
 
 type TaskFormScreenProps = {
-  onSubmit?: (values: TaskFormValues) => void;
-  onCancel?: () => void;
-  initialValues?: Partial<TaskFormValues>;
-};
+  onSuccess?: () => void
+  onCancel?: () => void
+  initialValues?: Partial<TaskFormValues>
+}
 
 const defaultValues: TaskFormValues = {
   title: '',
   description: '',
-  category: 'home',
+  category: 'general',
   priority: 'medium',
+  frequency: 'weekly',
   dueDate: '',
-  dueTime: '',
-  rewardPoints: 20,
-  recurring: false,
-  reminder: true,
-};
-
-function getPriorityLabel(priority: TaskPriority) {
-  switch (priority) {
-    case 'low':
-      return 'Douce';
-    case 'medium':
-      return 'Normale';
-    case 'high':
-      return 'Importante';
-    default:
-      return priority;
-  }
+  points: 20,
+  needsNfc: false,
 }
 
-function getCategoryLabel(category: TaskCategory) {
-  switch (category) {
-    case 'home':
-      return 'Maison';
-    case 'school':
-      return 'École';
-    case 'health':
-      return 'Santé';
-    case 'pet':
-      return 'Animal';
-    case 'other':
-      return 'Autre';
-    default:
-      return category;
-  }
+const CATEGORY_OPTIONS: { value: TaskCategory; label: string }[] = [
+  { value: 'general', label: 'Général' },
+  { value: 'kitchen', label: 'Cuisine' },
+  { value: 'bathroom', label: 'Salle de bain' },
+  { value: 'bedroom', label: 'Chambre' },
+  { value: 'living-room', label: 'Salon' },
+  { value: 'pet', label: 'Animal' },
+]
+
+const PRIORITY_OPTIONS: { value: TaskPriority; label: string }[] = [
+  { value: 'low', label: 'Douce' },
+  { value: 'medium', label: 'Normale' },
+  { value: 'high', label: 'Importante' },
+]
+
+const FREQUENCY_OPTIONS: { value: TaskFrequency; label: string }[] = [
+  { value: 'daily', label: 'Chaque jour' },
+  { value: 'weekly', label: 'Chaque semaine' },
+  { value: 'biweekly', label: 'Toutes les 2 semaines' },
+  { value: 'monthly', label: 'Chaque mois' },
+  { value: 'seasonal', label: 'Chaque saison' },
+  { value: 'yearly', label: 'Chaque année' },
+]
+
+function labelFor<T extends string>(
+  options: { value: T; label: string }[],
+  value: T,
+): string {
+  return options.find((option) => option.value === value)?.label ?? value
 }
 
 export default function TaskFormScreen({
-  onSubmit,
+  onSuccess,
   onCancel,
   initialValues,
 }: TaskFormScreenProps) {
+  const { createTask } = useTasks()
+
   const [values, setValues] = useState<TaskFormValues>({
     ...defaultValues,
     ...initialValues,
-  });
-
-  const [errors, setErrors] = useState<Partial<Record<keyof TaskFormValues, string>>>({});
+  })
+  const [errors, setErrors] = useState<Partial<Record<keyof TaskFormValues, string>>>({})
+  const [submitError, setSubmitError] = useState<string | null>(null)
+  const [submitting, setSubmitting] = useState(false)
 
   const summary = useMemo(() => {
-    const parts: string[] = [];
-
-    if (values.category) parts.push(getCategoryLabel(values.category));
-    if (values.priority) parts.push(getPriorityLabel(values.priority));
-    if (values.rewardPoints > 0) parts.push(`${values.rewardPoints} pts`);
-    if (values.recurring) parts.push('Récurrente');
-
-    return parts;
-  }, [values]);
+    const parts: string[] = []
+    parts.push(labelFor(CATEGORY_OPTIONS, values.category))
+    parts.push(labelFor(PRIORITY_OPTIONS, values.priority))
+    parts.push(labelFor(FREQUENCY_OPTIONS, values.frequency))
+    if (values.points > 0) parts.push(`${values.points} pts`)
+    return parts
+  }, [values])
 
   const setField = <K extends keyof TaskFormValues>(key: K, value: TaskFormValues[K]) => {
-    setValues(prev => ({ ...prev, [key]: value }));
-    setErrors(prev => ({ ...prev, [key]: '' }));
-  };
+    setValues((prev) => ({ ...prev, [key]: value }))
+    setErrors((prev) => ({ ...prev, [key]: '' }))
+    setSubmitError(null)
+  }
 
   const validate = () => {
-    const nextErrors: Partial<Record<keyof TaskFormValues, string>> = {};
+    const nextErrors: Partial<Record<keyof TaskFormValues, string>> = {}
 
     if (!values.title.trim()) {
-      nextErrors.title = 'Le titre est requis.';
+      nextErrors.title = 'Le titre est requis.'
+    } else if (values.title.trim().length > 150) {
+      nextErrors.title = 'Le titre doit rester sous 150 caractères.'
     }
 
-    if (values.title.trim().length > 80) {
-      nextErrors.title = 'Le titre doit rester sous 80 caractères.';
+    if (values.points < 0 || values.points > 200) {
+      nextErrors.points = 'Les points doivent être entre 0 et 200.'
     }
 
-    if (values.description.trim().length > 300) {
-      nextErrors.description = 'La description doit rester sous 300 caractères.';
+    setErrors(nextErrors)
+    return Object.keys(nextErrors).length === 0
+  }
+
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    setSubmitError(null)
+
+    if (!validate() || submitting) return
+
+    setSubmitting(true)
+    try {
+      await createTask({
+        title: values.title.trim(),
+        description: values.description.trim(),
+        category: values.category,
+        priority: values.priority,
+        frequency: values.frequency,
+        points: values.points,
+        dueDate: values.dueDate || null,
+        needsNfc: values.needsNfc,
+      })
+      onSuccess?.()
+    } catch (error) {
+      setSubmitError(
+        error instanceof Error
+          ? error.message
+          : 'Impossible de créer la tâche. Réessaie.',
+      )
+    } finally {
+      setSubmitting(false)
     }
-
-    if (values.rewardPoints < 0 || values.rewardPoints > 200) {
-      nextErrors.rewardPoints = 'Les points doivent être entre 0 et 200.';
-    }
-
-    setErrors(nextErrors);
-    return Object.keys(nextErrors).length === 0;
-  };
-
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-
-    if (!validate()) return;
-
-    onSubmit?.({
-      ...values,
-      title: values.title.trim(),
-      description: values.description.trim(),
-    });
-  };
+  }
 
   return (
     <section className="screen task-form-screen">
@@ -149,6 +163,12 @@ export default function TaskFormScreen({
       </header>
 
       <form className="task-form" onSubmit={handleSubmit}>
+        {submitError ? (
+          <p className="form-error" role="alert">
+            {submitError}
+          </p>
+        ) : null}
+
         <div className="task-form-card">
           <div className="section-head">
             <h2>Détails</h2>
@@ -163,7 +183,7 @@ export default function TaskFormScreen({
               placeholder="Ex. Ranger la chambre"
               value={values.title}
               onChange={(e) => setField('title', e.target.value)}
-              maxLength={80}
+              maxLength={150}
             />
             {errors.title ? <span className="small muted">{errors.title}</span> : null}
           </div>
@@ -177,11 +197,7 @@ export default function TaskFormScreen({
               onChange={(e) => setField('description', e.target.value)}
               maxLength={300}
             />
-            {errors.description ? (
-              <span className="small muted">{errors.description}</span>
-            ) : (
-              <span className="small muted">{values.description.length}/300</span>
-            )}
+            <span className="small muted">{values.description.length}/300</span>
           </div>
 
           <div className="form-row">
@@ -192,11 +208,11 @@ export default function TaskFormScreen({
                 value={values.category}
                 onChange={(e) => setField('category', e.target.value as TaskCategory)}
               >
-                <option value="home">Maison</option>
-                <option value="school">École</option>
-                <option value="health">Santé</option>
-                <option value="pet">Animal</option>
-                <option value="other">Autre</option>
+                {CATEGORY_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
               </select>
             </div>
 
@@ -207,9 +223,11 @@ export default function TaskFormScreen({
                 value={values.priority}
                 onChange={(e) => setField('priority', e.target.value as TaskPriority)}
               >
-                <option value="low">Douce</option>
-                <option value="medium">Normale</option>
-                <option value="high">Importante</option>
+                {PRIORITY_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
               </select>
             </div>
           </div>
@@ -223,22 +241,27 @@ export default function TaskFormScreen({
 
           <div className="form-row">
             <div className="form-field">
-              <label htmlFor="task-date">Date</label>
+              <label htmlFor="task-frequency">Récurrence</label>
+              <select
+                id="task-frequency"
+                value={values.frequency}
+                onChange={(e) => setField('frequency', e.target.value as TaskFrequency)}
+              >
+                {FREQUENCY_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="form-field">
+              <label htmlFor="task-date">Échéance</label>
               <input
                 id="task-date"
                 type="date"
                 value={values.dueDate}
                 onChange={(e) => setField('dueDate', e.target.value)}
-              />
-            </div>
-
-            <div className="form-field">
-              <label htmlFor="task-time">Heure</label>
-              <input
-                id="task-time"
-                type="time"
-                value={values.dueTime}
-                onChange={(e) => setField('dueTime', e.target.value)}
               />
             </div>
           </div>
@@ -251,17 +274,15 @@ export default function TaskFormScreen({
               min={0}
               max={100}
               step={5}
-              value={values.rewardPoints}
-              onChange={(e) => setField('rewardPoints', Number(e.target.value))}
+              value={values.points}
+              onChange={(e) => setField('points', Number(e.target.value))}
             />
             <div className="range-labels">
               <span>0 pt</span>
-              <strong>{values.rewardPoints} pts</strong>
+              <strong>{values.points} pts</strong>
               <span>100 pts</span>
             </div>
-            {errors.rewardPoints ? (
-              <span className="small muted">{errors.rewardPoints}</span>
-            ) : null}
+            {errors.points ? <span className="small muted">{errors.points}</span> : null}
           </div>
         </div>
 
@@ -272,31 +293,25 @@ export default function TaskFormScreen({
           </div>
 
           <div className="form-toggles">
-            <label className="toggle-label" htmlFor="task-recurring">
+            <label className="toggle-label" htmlFor="task-nfc">
               <input
-                id="task-recurring"
+                id="task-nfc"
                 type="checkbox"
-                checked={values.recurring}
-                onChange={(e) => setField('recurring', e.target.checked)}
+                checked={values.needsNfc}
+                onChange={(e) => setField('needsNfc', e.target.checked)}
               />
-              <span>Répéter cette tâche automatiquement</span>
-            </label>
-
-            <label className="toggle-label" htmlFor="task-reminder">
-              <input
-                id="task-reminder"
-                type="checkbox"
-                checked={values.reminder}
-                onChange={(e) => setField('reminder', e.target.checked)}
-              />
-              <span>Activer un rappel</span>
+              <span>Valider avec un badge NFC</span>
             </label>
           </div>
 
           <div className="row-badges">
-            <span className="badge badge-info">{getCategoryLabel(values.category)}</span>
-            <span className="badge badge-rank">{getPriorityLabel(values.priority)}</span>
-            {values.recurring ? <span className="badge badge-pet">Récurrente</span> : null}
+            <span className="badge badge-info">
+              {labelFor(CATEGORY_OPTIONS, values.category)}
+            </span>
+            <span className="badge badge-rank">
+              {labelFor(PRIORITY_OPTIONS, values.priority)}
+            </span>
+            {values.needsNfc ? <span className="badge badge-pet">NFC</span> : null}
           </div>
         </div>
 
@@ -309,37 +324,39 @@ export default function TaskFormScreen({
           <article className="task-card task-card-compact">
             <div className="task-top">
               <div>
-                <h3 className="task-title">
-                  {values.title.trim() || 'Titre de la tâche'}
-                </h3>
+                <h3 className="task-title">{values.title.trim() || 'Titre de la tâche'}</h3>
                 <p className="task-meta">
-                  {values.description.trim() || 'Ajoute une description courte pour aider à passer à l’action.'}
+                  {values.description.trim() ||
+                    'Ajoute une description courte pour aider à passer à l’action.'}
                 </p>
               </div>
 
-              <span className="calendar-event-due">
-                {values.dueDate || 'Sans date'}
-              </span>
+              <span className="calendar-event-due">{values.dueDate || 'Sans date'}</span>
             </div>
 
             <div className="row-badges">
-              <span className="pill">{getCategoryLabel(values.category)}</span>
-              <span className="pill">{getPriorityLabel(values.priority)}</span>
-              <span className="pill">{values.rewardPoints} pts</span>
-              {values.reminder ? <span className="pill">Rappel</span> : null}
+              <span className="pill">{labelFor(CATEGORY_OPTIONS, values.category)}</span>
+              <span className="pill">{labelFor(PRIORITY_OPTIONS, values.priority)}</span>
+              <span className="pill">{values.points} pts</span>
+              {values.needsNfc ? <span className="pill">NFC</span> : null}
             </div>
           </article>
         </div>
 
         <div className="task-actions">
-          <button type="button" className="btn btn-secondary" onClick={onCancel}>
+          <button
+            type="button"
+            className="btn btn-secondary"
+            onClick={onCancel}
+            disabled={submitting}
+          >
             Annuler
           </button>
-          <button type="submit" className="btn btn-primary">
-            Enregistrer la tâche
+          <button type="submit" className="btn btn-primary" disabled={submitting}>
+            {submitting ? 'Enregistrement…' : 'Enregistrer la tâche'}
           </button>
         </div>
       </form>
     </section>
-  );
+  )
 }

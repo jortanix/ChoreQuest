@@ -7,7 +7,7 @@ import {
 import { tasks as initialTasks } from '../data/tasks'
 import { useLocalStorage } from '../hooks/useLocalStorage'
 import type { CompletionEvent, NfcBinding, Task } from '../types'
-import { TasksContext } from './TasksContext'
+import { TasksContext, type CreateTaskInput } from './TasksContext'
 import { completeTask } from '../utils/streaks'
 import { getAccessToken } from '../lib/api'
 
@@ -23,6 +23,19 @@ function authHeaders(): HeadersInit {
         'Content-Type': 'application/json',
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
     }
+}
+
+// Aplati une réponse d'erreur DRF ({ champ: ["message"] }) en une phrase lisible.
+function buildErrorMessage(detail: unknown): string {
+    if (detail && typeof detail === 'object') {
+        const parts: string[] = []
+        for (const value of Object.values(detail as Record<string, unknown>)) {
+            if (Array.isArray(value)) parts.push(...value.map(String))
+            else if (value) parts.push(String(value))
+        }
+        if (parts.length) return parts.join(' ')
+    }
+    return 'Impossible de créer la tâche. Réessaie.'
 }
 
 // ─── Normaliseurs ─────────────────────────────────────────────────────────────
@@ -172,6 +185,37 @@ export function TasksProvider({ children }: TasksProviderProps) {
         return () => { isMounted = false }
     }, [setTaskList, setCompletionHistory, setNfcBindings])
 
+    const createTask = useCallback(
+        async (input: CreateTaskInput): Promise<Task> => {
+            const payload = {
+                title:       input.title,
+                description: input.description ?? '',
+                category:    input.category || 'general',
+                priority:    input.priority ?? 'low',
+                frequency:   input.frequency ?? 'weekly',
+                points:      input.points ?? 0,
+                due_date:    input.dueDate || null,
+                needs_nfc:   input.needsNfc ?? false,
+            }
+
+            const res = await fetch(`${API_URL}/tasks/`, {
+                method: 'POST',
+                headers: authHeaders(),
+                body: JSON.stringify(payload),
+            })
+
+            if (!res.ok) {
+                const detail = await res.json().catch(() => null)
+                throw new Error(buildErrorMessage(detail))
+            }
+
+            const created = normalizeTask(await res.json() as ApiTask)
+            setTaskList((curr) => [created, ...curr])
+            return created
+        },
+        [setTaskList]
+    )
+
     const completeTaskById = useCallback(
         async (taskId: string) => {
             const existingTask = taskList.find((t) => t.id === taskId)
@@ -288,12 +332,12 @@ export function TasksProvider({ children }: TasksProviderProps) {
 
     const value = useMemo(() => ({
         taskList, completionHistory, nfcBindings,
-        completeTaskById, linkNfcTagToTask, unlinkNfcTagFromTask,
+        createTask, completeTaskById, linkNfcTagToTask, unlinkNfcTagFromTask,
         getNfcBindingByTaskId, getTaskByNfcTagId,
         resetTasks, clearHistory, clearNfcBindings, setTaskList,
     }), [
         taskList, completionHistory, nfcBindings,
-        completeTaskById, linkNfcTagToTask, unlinkNfcTagFromTask,
+        createTask, completeTaskById, linkNfcTagToTask, unlinkNfcTagFromTask,
         getNfcBindingByTaskId, getTaskByNfcTagId,
         resetTasks, clearHistory, clearNfcBindings, setTaskList,
     ])
