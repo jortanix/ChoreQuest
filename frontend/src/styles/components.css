@@ -653,6 +653,21 @@
   cursor: pointer;
 }
 
+.form-error {
+  background: #ffe9f4;
+  color: #c95190;
+  border: 2px solid #ffc0de;
+  border-radius: 16px;
+  padding: 0.8rem 0.95rem;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .bottom-nav {
   position: fixed;
   left: 50%;
@@ -861,7 +876,8 @@
 }
 
 .app-root.dark .badge-danger,
-.app-root.dark .badge.alert {
+.app-root.dark .badge.alert,
+.app-root.dark .form-error {
   background: rgba(245, 138, 192, 0.18);
   color: #ffd4ea;
   border-color: rgba(255, 145, 192, 0.34);
